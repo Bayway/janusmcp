@@ -117,10 +117,11 @@ func installToFile(label, path, key string, entry mcpEntry, restartHint string) 
 // execAdd uses a client's own CLI (`claude mcp add` / `codex mcp add`) which share the
 // same flags. Falls back to printing the command if the CLI isn't on PATH.
 func execAdd(label, bin, self, cfg string) error {
-	addArgs := []string{"mcp", "add", "janusmcp", "--env", "JANUS_CONFIG=" + cfg, "--", self, "serve"}
+	addArgs := []string{"mcp", "add", "janusmcp"}
 	if label == "Claude Code" {
-		addArgs = append([]string{"mcp", "add", "janusmcp", "--scope", "user", "--env", "JANUS_CONFIG=" + cfg, "--", self, "serve"})
+		addArgs = append(addArgs, "--scope", "user")
 	}
+	addArgs = append(addArgs, "--env", "JANUS_CONFIG="+cfg, "--", self, "serve")
 	if _, err := exec.LookPath(bin); err != nil {
 		fmt.Printf("The `%s` CLI was not found. Run this manually:\n  %s %s\n", bin, bin, strings.Join(addArgs, " "))
 		return nil
