@@ -1,0 +1,29 @@
+{
+  // Two Supabase accounts via the HOSTED remote MCP server, authenticated with a
+  // browser login (MCP-native OAuth + dynamic client registration). No PAT, no
+  // tokens in this file. On first use of each account the broker opens your
+  // browser; log into the corresponding Supabase account there.
+  //
+  // Tip: log into account A in your normal browser profile and account B in a
+  // separate profile (or after logging out) so each gets its own identity.
+  "defaultAccount": "supabase_a",
+  "bindingMode": "session",
+  "accounts": [
+    {
+      "id": "supabase_a",
+      "service": "supabase",
+      "label": "Supabase — Account A",
+      "transport": "http",
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth"
+    },
+    {
+      "id": "supabase_b",
+      "service": "supabase",
+      "label": "Supabase — Account B",
+      "transport": "http",
+      "url": "https://mcp.supabase.com/mcp",
+      "auth": "oauth"
+    }
+  ]
+}

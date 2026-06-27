@@ -1,0 +1,25 @@
+{
+  "name": "janusmcp-spike",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Phase 0 spike: local MCP broker that proxies tools to a per-account active upstream (active-account model).",
+  "license": "MIT",
+  "bin": {
+    "janusmcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "node test/e2e.mjs",
+    "test:http": "node test/http.e2e.mjs",
+    "test:all": "node test/e2e.mjs && node test/http.e2e.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

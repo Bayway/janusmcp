@@ -1,0 +1,116 @@
+# GoReleaser configuration — https://goreleaser.com
+# One tag (vX.Y.Z) builds binaries for all platforms and publishes them to:
+# GitHub Releases, a Homebrew tap, a Scoop bucket, .deb/.rpm/.apk packages,
+# and a Docker image on GHCR. The npm wrapper is published by the release workflow.
+#
+# Adjust `owner`/repo names below if your GitHub repository is not
+# github.com/bayway/janusmcp.
+version: 2
+
+project_name: janusmcp
+
+before:
+  hooks:
+    - sh -c "cd go && go mod tidy"
+
+builds:
+  - id: janusmcp
+    dir: go                       # the Go module lives in ./go
+    main: ./cmd/janusmcp
+    binary: janusmcp
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    name_template: "janusmcp_{{ .Os }}_{{ .Arch }}"
+    formats: ["tar.gz"]
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+# --- Homebrew Cask (pushes a cask to your tap repo) ---
+homebrew_casks:
+  - name: janusmcp
+    repository:
+      owner: bayway
+      name: homebrew-janusmcp
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/bayway/janusmcp"
+    description: "Local multi-account MCP broker — one endpoint, every account."
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    # The binary is unsigned; strip the macOS quarantine bit so it runs.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/janusmcp"]
+          end
+
+# --- Scoop (Windows; pushes a manifest to your bucket repo) ---
+scoops:
+  - repository:
+      owner: bayway
+      name: scoop-janusmcp
+      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+    homepage: "https://github.com/bayway/janusmcp"
+    description: "Local multi-account MCP broker."
+    license: MIT
+
+# --- Linux packages (.deb / .rpm / .apk attached to the release) ---
+nfpms:
+  - id: packages
+    package_name: janusmcp
+    homepage: "https://github.com/bayway/janusmcp"
+    description: "Local multi-account MCP broker — one endpoint, every account."
+    maintainer: "Massimiliano Fiori"
+    license: MIT
+    formats: [deb, rpm, apk]
+    bindir: /usr/bin
+
+# --- Docker images on GHCR (multi-arch via buildx) ---
+dockers_v2:
+  - id: janusmcp
+    dockerfile: Dockerfile
+    images:
+      - "ghcr.io/bayway/janusmcp"
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .IsSnapshot }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    annotations:
+      "org.opencontainers.image.source": "{{ .GitURL }}"
+      "org.opencontainers.image.version": "{{ .Version }}"
+
+release:
+  github:
+    owner: bayway
+    name: janusmcp
+  draft: false
+  prerelease: auto

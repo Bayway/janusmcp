@@ -1,0 +1,52 @@
+{
+  "defaultAccount": "azienda_a",
+  "bindingMode": "session",
+  "accounts": [
+    {
+      "id": "azienda_a",
+      "service": "mock",
+      "label": "Azienda A (mock)",
+      "command": "node",
+      "args": ["../spike/mock-upstream/server.mjs"],
+      "env": { "MOCK_ACCOUNT": "azienda_a" }
+    },
+    {
+      "id": "azienda_b",
+      "service": "mock",
+      "label": "Azienda B (mock)",
+      "command": "node",
+      "args": ["../spike/mock-upstream/server.mjs"],
+      "env": { "MOCK_ACCOUNT": "azienda_b" }
+    }
+
+    // --- Esempio reale Supabase: il PAT vive nel vault, non qui ---
+    // ,{
+    //   "id": "cliente_x",
+    //   "service": "supabase",
+    //   "label": "Cliente X",
+    //   "command": "npx",
+    //   "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=REF_X"],
+    //   "env": { "SUPABASE_ACCESS_TOKEN": "vault:supabase_cliente_x" }
+    // }
+
+    // --- Esempio account OAuth: l'access token viene risolto (e rinfrescato) da "oauth:<name>" ---
+    // ,{
+    //   "id": "cliente_y",
+    //   "service": "github",
+    //   "label": "Cliente Y",
+    //   "command": "some-mcp-server",
+    //   "args": [],
+    //   "env": { "ACCESS_TOKEN": "oauth:cliente_y_github" }
+    // }
+  ],
+
+  // Registry dei provider OAuth usati da `janusmcp login <provider> <name>`.
+  "oauthProviders": {
+    "github": {
+      "authURL": "https://github.com/login/oauth/authorize",
+      "tokenURL": "https://github.com/login/oauth/access_token",
+      "clientId": "${GITHUB_OAUTH_CLIENT_ID}",
+      "scopes": ["repo", "read:org"]
+    }
+  }
+}

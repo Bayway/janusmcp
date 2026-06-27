@@ -1,0 +1,22 @@
+{
+  "defaultAccount": "azienda_a",
+  "bindingMode": "global",
+  "accounts": [
+    {
+      "id": "azienda_a",
+      "service": "mock",
+      "label": "Azienda A (mock)",
+      "command": "node",
+      "args": ["mock-upstream/server.mjs"],
+      "env": { "MOCK_ACCOUNT": "azienda_a" }
+    },
+    {
+      "id": "azienda_b",
+      "service": "mock",
+      "label": "Azienda B (mock)",
+      "command": "node",
+      "args": ["mock-upstream/server.mjs"],
+      "env": { "MOCK_ACCOUNT": "azienda_b" }
+    }
+  ]
+}

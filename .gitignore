@@ -1,0 +1,28 @@
+# Build output
+go/bin/
+dist/
+*.exe
+
+# mcpb bundle build artifacts
+mcpb/server/
+*.mcpb
+
+# Local config & secrets (never commit). Test fixtures like spike/config.json
+# and spike/config.session.json are intentionally tracked.
+/go/config.json
+config.local.json
+.janusmcp-state.json
+janusmcp-vault.enc
+janusmcp-vault.key
+
+# Node (spike)
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+*.log
+
+# legacy/runtime state
+*.multimcp-state.json
+*.janusmcp-state.json

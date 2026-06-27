@@ -1,0 +1,44 @@
+{
+  "manifest_version": "0.3",
+  "name": "janusmcp",
+  "display_name": "JanusMCP",
+  "version": "0.1.0",
+  "description": "Local multi-account MCP broker — one endpoint, every account. Switch identity without reconnecting.",
+  "long_description": "JanusMCP lets you use the same MCP service (Supabase, GitHub, …) with multiple accounts behind one endpoint. Add credentials once, switch identity with a tool call — no reconnecting, no re-login. Tokens live in your OS keychain.",
+  "author": { "name": "Massimiliano Fiori" },
+  "repository": { "type": "git", "url": "https://github.com/bayway/janusmcp.git" },
+  "homepage": "https://github.com/bayway/janusmcp",
+  "support": "https://github.com/bayway/janusmcp/issues",
+  "license": "MIT",
+  "keywords": ["mcp", "multi-account", "broker", "supabase", "oauth"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/janusmcp",
+    "mcp_config": {
+      "command": "${__dirname}/server/janusmcp",
+      "args": ["serve"],
+      "env": { "JANUS_CONFIG": "${user_config.config_path}" },
+      "platform_overrides": {
+        "win32": { "command": "${__dirname}/server/janusmcp.exe" }
+      }
+    }
+  },
+  "tools": [
+    { "name": "janus_list_accounts", "description": "List configured accounts and which is active" },
+    { "name": "janus_use_account", "description": "Switch the active account/identity" },
+    { "name": "janus_whoami", "description": "Show the active account" }
+  ],
+  "tools_generated": true,
+  "user_config": {
+    "config_path": {
+      "type": "file",
+      "title": "Config file (config.json)",
+      "description": "Path to your JanusMCP config.json. Leave empty to use the default location managed by `janusmcp ui` (recommended).",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  // Two real Supabase accounts/projects behind one broker.
+  // PATs are kept in the OS keychain (vault), never in this file.
+  // Store them first:
+  //   janusmcp vault set supabase_client_a
+  //   janusmcp vault set supabase_client_b
+  "defaultAccount": "client_a",
+  "bindingMode": "session",
+  "accounts": [
+    {
+      "id": "client_a",
+      "service": "supabase",
+      "label": "Client A — Supabase",
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=PROJECT_REF_A"],
+      "env": { "SUPABASE_ACCESS_TOKEN": "vault:supabase_client_a" }
+    },
+    {
+      "id": "client_b",
+      "service": "supabase",
+      "label": "Client B — Supabase",
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=PROJECT_REF_B"],
+      "env": { "SUPABASE_ACCESS_TOKEN": "vault:supabase_client_b" }
+    }
+  ]
+}

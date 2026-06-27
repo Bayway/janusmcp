@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: CI only needs to read the repo. Secrets are not exposed to
+# pull_request runs from forks by GitHub default.
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: build & test (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: go/go.sum
+
+      # The broker integration tests spawn a Node mock upstream (uses the MCP SDK).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install mock upstream deps
+        working-directory: spike
+        run: npm install --no-audit --no-fund
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./... -count=1

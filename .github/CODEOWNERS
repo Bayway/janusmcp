@@ -1,0 +1,19 @@
+# Code owners — automatically requested for review on matching paths.
+# With "Require review from Code Owners" branch protection, these paths
+# cannot be merged without the owner's approval.
+
+# Default owner for everything
+*                       @Bayway
+
+# Security- and release-critical paths (protect from being overwritten)
+/.github/                @Bayway
+/.goreleaser.yaml        @Bayway
+/server.json             @Bayway
+/mcpb/manifest.json      @Bayway
+/go/go.mod               @Bayway
+/go/go.sum               @Bayway
+/npm/package.json        @Bayway
+/go/internal/vault/      @Bayway
+/go/internal/oauth/      @Bayway
+/LICENSE                 @Bayway
+/SECURITY.md             @Bayway
