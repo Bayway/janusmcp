@@ -1,5 +1,5 @@
 {
-  "name": "janusmcp",
+  "name": "@bayway/janusmcp",
   "version": "0.0.0",
   "mcpName": "io.github.bayway/janusmcp",
   "description": "Local multi-account MCP broker — one endpoint, every account. Add credentials once, switch identity without reconnecting, from any LLM.",

@@ -17,7 +17,7 @@ After install, open the control panel to add accounts and log in:
 janusmcp ui
 ```
 
-(If you also want the `janusmcp` CLI on your PATH, install it separately via `go install ./cmd/janusmcp`, Homebrew, or `npx janusmcp`.)
+(If you also want the `janusmcp` CLI on your PATH, install it separately via `go install ./cmd/janusmcp`, Homebrew, or `npx @bayway/janusmcp`.)
 
 ## Notes
 

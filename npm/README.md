@@ -4,8 +4,8 @@ Local multi-account MCP broker — one endpoint, every account. Add credentials 
 switch identity without reconnecting, from any LLM.
 
 ```bash
-npx janusmcp serve            # run it
-npm i -g janusmcp             # or install globally
+npx @bayway/janusmcp serve            # run it
+npm i -g @bayway/janusmcp             # or install globally
 janusmcp version
 ```
 

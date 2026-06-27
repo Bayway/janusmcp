@@ -12,8 +12,8 @@ Add your credentials once, switch identity without reconnecting — from any LLM
 
 <br/>
 
-[![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-0098FF?style=for-the-badge)](cursor://anysphere.cursor-deeplink/mcp/install?name=janusmcp&config=eyJjb21tYW5kIjogIm5weCIsICJhcmdzIjogWyIteSIsICJqYW51c21jcCIsICJzZXJ2ZSJdfQ==)
-[![Install in VS Code](https://img.shields.io/badge/Install-VS_Code-007ACC?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect/mcp/install?name=janusmcp&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22janusmcp%22%2C%22serve%22%5D%7D)
+[![Add to Cursor](https://img.shields.io/badge/Add_to-Cursor-0098FF?style=for-the-badge)](cursor://anysphere.cursor-deeplink/mcp/install?name=janusmcp&config=eyJjb21tYW5kIjogIm5weCIsICJhcmdzIjogWyIteSIsICJAYmF5d2F5L2phbnVzbWNwIiwgInNlcnZlIl19)
+[![Install in VS Code](https://img.shields.io/badge/Install-VS_Code-007ACC?style=for-the-badge&logo=visualstudiocode)](https://insiders.vscode.dev/redirect/mcp/install?name=janusmcp&config=%7B%22command%22%3A%20%22npx%22%2C%20%22args%22%3A%20%5B%22-y%22%2C%20%22%40bayway/janusmcp%22%2C%20%22serve%22%5D%7D)
 
 <sub>One-click buttons require the npm package to be published. See <a href="RELEASING.md">RELEASING.md</a>.</sub>
 
@@ -56,7 +56,7 @@ Once released, install via your favorite channel (all published automatically on
 tag — see [RELEASING.md](RELEASING.md)):
 
 ```bash
-npx janusmcp serve                                   # npm (works inside MCP/npx setups)
+npx @bayway/janusmcp serve                                   # npm (works inside MCP/npx setups)
 brew install bayway/janusmcp/janusmcp     # Homebrew (macOS/Linux)
 scoop install janusmcp                               # Windows
 docker run --rm -p 7332:7332 ghcr.io/bayway/janusmcp:latest

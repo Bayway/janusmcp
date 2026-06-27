@@ -49,7 +49,7 @@ jobs:
           SCOOP_BUCKET_GITHUB_TOKEN: ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}
 
   npm:
-    name: Publish npm wrapper (npx janusmcp)
+    name: Publish npm wrapper (npx @bayway/janusmcp)
     needs: goreleaser   # the wrapper downloads release assets at install time
     runs-on: ubuntu-latest
     steps:

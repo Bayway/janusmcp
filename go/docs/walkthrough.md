@@ -18,7 +18,7 @@ Pick one:
 
 ```bash
 # npm (works great inside MCP/npx setups)
-npx janusmcp version
+npx @bayway/janusmcp version
 
 # Homebrew (macOS/Linux)
 brew install bayway/janusmcp/janusmcp

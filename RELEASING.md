@@ -18,7 +18,7 @@ That single push produces, automatically:
 | Scoop (Windows) | manifest pushed to `scoop-janusmcp` bucket | GoReleaser `scoops` |
 | Linux packages | `.deb` / `.rpm` / `.apk` attached to the release | GoReleaser `nfpms` |
 | Docker | `ghcr.io/<owner>/janusmcp:<ver>` + `:latest` (amd64+arm64) | GoReleaser `dockers` |
-| npm | `npx janusmcp` (downloads the matching binary) | `npm` job in the workflow |
+| npm | `npx @bayway/janusmcp` (downloads the matching binary) | `npm` job in the workflow |
 
 ## One-time setup (before the first tag)
 
@@ -32,7 +32,7 @@ That single push produces, automatically:
    - `SCOOP_BUCKET_GITHUB_TOKEN` — a PAT with `repo` scope that can push to the bucket.
    - `NPM_TOKEN` — an npm automation token with publish rights.
    - `GITHUB_TOKEN` is provided automatically (used for the release + GHCR push).
-4. **npm package name**: `janusmcp` may be taken. Check `npm view janusmcp`. If taken,
+4. **npm package name**: `janusmcp` may be taken. Check `npm view @bayway/janusmcp`. If taken,
    switch to a scope: set `"name": "@bayway/janusmcp"` in `npm/package.json`
    (publish stays `--access public`).
 5. **Enable GHCR**: the workflow logs in with `GITHUB_TOKEN` (needs `packages: write`,
@@ -44,7 +44,7 @@ That single push produces, automatically:
 ```bash
 brew install bayway/janusmcp/janusmcp     # via your tap
 scoop bucket add janusmcp https://github.com/bayway/scoop-janusmcp && scoop install janusmcp
-npx janusmcp serve
+npx @bayway/janusmcp serve
 docker run --rm -p 7332:7332 ghcr.io/bayway/janusmcp:latest
 ```
 
@@ -60,7 +60,7 @@ mcp-publisher login github          # OAuth for the io.github.* namespace
 mcp-publisher publish               # validates server.json + npm ownership, then publishes
 ```
 
-Requirements already in place: the npm package `janusmcp` carries `mcpName`, and `server.json`
+Requirements already in place: the npm package `@bayway/janusmcp` carries `mcpName`, and `server.json`
 uses the `io.github.bayway/janusmcp` name. Publish the npm package first (the
 release workflow does this), then run `mcp-publisher publish`. Bump the `version` in
 `server.json` for each release (can be wired into CI later).
@@ -71,7 +71,7 @@ release workflow does this), then run `mcp-publisher publish`. Bump the `version
 ## One-click install buttons
 
 The README has **Add to Cursor** / **Install in VS Code** badges. They launch the client with
-`npx -y janusmcp serve`, so they start working once the npm package is published. Regenerate
+`npx -y @bayway/janusmcp serve`, so they start working once the npm package is published. Regenerate
 the encoded configs if you change the command (see the badge URLs in `README.md`).
 
 ## Manual / follow-up channels (not automated here)

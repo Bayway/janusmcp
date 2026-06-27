@@ -10,7 +10,7 @@
   "packages": [
     {
       "registry_type": "npm",
-      "identifier": "janusmcp",
+      "identifier": "@bayway/janusmcp",
       "version": "0.1.0",
       "transport": { "type": "stdio" }
     }

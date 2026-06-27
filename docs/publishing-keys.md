@@ -1,7 +1,7 @@
 # Publishing: keys, tokens & claiming the name
 
 What each channel needs, where to get the token, and how the name gets reserved.
-Repo handle: **`bayway/janusmcp`** · npm/binary/command: **`janusmcp`**.
+Repo handle: **`bayway/janusmcp`** · npm package: **`@bayway/janusmcp`** (scoped) · binary/command: **`janusmcp`**.
 
 > **Fast path:** after you have an npm token and a GitHub PAT, run
 > `bash scripts/setup-publishing.sh` — it creates the tap + bucket repos and sets the three
@@ -10,7 +10,7 @@ Repo handle: **`bayway/janusmcp`** · npm/binary/command: **`janusmcp`**.
 | Channel | Secret needed | Name reserved by |
 |---|---|---|
 | GitHub Releases | `GITHUB_TOKEN` (automatic) | the repo itself |
-| npm | `NPM_TOKEN` | first `npm publish` of `janusmcp` |
+| npm | `NPM_TOKEN` | first `npm publish` of `@bayway/janusmcp` |
 | Homebrew (tap) | `HOMEBREW_TAP_GITHUB_TOKEN` (PAT) | creating repo `bayway/homebrew-janusmcp` |
 | Scoop (bucket) | `SCOOP_BUCKET_GITHUB_TOKEN` (PAT) | creating repo `bayway/scoop-janusmcp` |
 | Docker (GHCR) | `GITHUB_TOKEN` (automatic) | `ghcr.io/bayway/janusmcp` on first push |
@@ -25,8 +25,10 @@ Repo handle: **`bayway/janusmcp`** · npm/binary/command: **`janusmcp`**.
    with **Read and write** for Packages (or a classic **Automation** token — it skips the
    2FA OTP in CI, which is what we want for the release workflow).
 3. Copy the token → it goes into the GitHub secret `NPM_TOKEN` (step 6).
-4. The name `janusmcp` is **free** and becomes yours on the **first successful publish**.
-   The release pipeline publishes it automatically on a tag (step 7); you don't publish by hand.
+4. The unscoped name `janusmcp` is blocked by npm (too similar to an existing package), so we
+   publish under your scope: **`@bayway/janusmcp`**. It becomes yours on the **first successful
+   publish** and the release pipeline publishes it automatically on a tag (step 7) with
+   `--access public` (scoped packages default to private otherwise).
    - To grab the name *right now* (optional): `cd npm && npm login && npm publish --access public`.
      Note the package's `postinstall` downloads the binary from a GitHub release, so a manual
      publish before any release exists would fail for installers — prefer claiming at first release.
@@ -67,7 +69,7 @@ mcp-publisher login github          # browser OAuth
 mcp-publisher publish               # validates server.json + npm ownership, publishes
 ```
 
-Requires the npm package published first (the registry checks that npm `janusmcp` has
+Requires the npm package published first (the registry checks that npm `@bayway/janusmcp` has
 `"mcpName": "io.github.bayway/janusmcp"` — already set in `npm/package.json`).
 
 ## 6. Add the secrets to the repo
