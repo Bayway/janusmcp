@@ -12,23 +12,46 @@ permissions:
   contents: read
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
+  go:
+    name: CodeQL (go)
     runs-on: ubuntu-latest
     permissions:
       security-events: write
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [go, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: go
+          build-mode: manual
+
+      # The Go module lives in ./go, so build it there for CodeQL to trace.
+      - run: cd go && go build ./...
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:go"
+
+  javascript:
+    name: CodeQL (javascript)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: github/codeql-action/init@v3
         with:
-          language: ${{ matrix.language }}
-
-      - uses: github/codeql-action/autobuild@v3
+          languages: javascript-typescript
+          build-mode: none
 
       - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

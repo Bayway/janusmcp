@@ -11,7 +11,7 @@ Settings → Rules → Rulesets → New branch ruleset, target `refs/heads/main`
 
 - ✅ Require a pull request before merging — **1 approval**, **require review from Code Owners**,
   dismiss stale approvals on push, require conversation resolution
-- ✅ Require status checks to pass — add **`build & test (Go)`** and **`Analyze (go)`**
+- ✅ Require status checks to pass — add **`build & test (Go)`** and **`CodeQL (go)`**
   (names appear after the first CI/CodeQL run), "strict" (branch up to date)
 - ✅ Block force pushes (non-fast-forward) and ✅ Restrict deletions
 - ✅ Require linear history
@@ -91,7 +91,7 @@ Settings → Secrets and variables → Actions:
         "strict_required_status_checks_policy": true,
         "required_status_checks": [
           { "context": "build & test (Go)" },
-          { "context": "Analyze (go)" }
+          { "context": "CodeQL (go)" }
         ]
     } }
   ]
