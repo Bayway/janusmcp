@@ -48,22 +48,26 @@ npx @bayway/janusmcp serve
 docker run --rm -p 7332:7332 ghcr.io/bayway/janusmcp:latest
 ```
 
-## Publish to the official MCP Registry
+## Publish to the official MCP Registry — automated
 
-The cross-client discovery standard ([registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io)).
-`server.json` (repo root) is ready; the npm package already declares the matching
-`mcpName: io.github.bayway/janusmcp`.
+The cross-client discovery standard ([registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io))
+is now published **automatically** by the `mcp-registry` job in [`release.yml`](.github/workflows/release.yml),
+on every tag, right after the npm job. It authenticates with **GitHub OIDC** (no stored secret),
+syncs `server.json`'s version to the tag, and runs `mcp-publisher publish`. The job is
+`continue-on-error` because the registry is in preview — a registry outage won't fail the release.
+
+How it stays valid: the npm package `@bayway/janusmcp` carries `mcpName: io.github.bayway/janusmcp`,
+`server.json` uses the same `io.github.bayway/janusmcp` name, and OIDC proves the
+`io.github.bayway/*` namespace from this repo's owner. The job `needs: npm`, so the npm package
+is always live before the registry validates it.
+
+To publish manually (e.g. a one-off):
 
 ```bash
 brew install mcp-publisher          # or download the prebuilt binary
-mcp-publisher login github          # OAuth for the io.github.* namespace
+mcp-publisher login github          # browser OAuth for the io.github.* namespace
 mcp-publisher publish               # validates server.json + npm ownership, then publishes
 ```
-
-Requirements already in place: the npm package `@bayway/janusmcp` carries `mcpName`, and `server.json`
-uses the `io.github.bayway/janusmcp` name. Publish the npm package first (the
-release workflow does this), then run `mcp-publisher publish`. Bump the `version` in
-`server.json` for each release (can be wired into CI later).
 
 > Tip: you can also list the Claude Desktop `.mcpb` as an `mcpb` package in `server.json`
 > (with its `file_sha256`) once you attach a built `.mcpb` to a GitHub release.

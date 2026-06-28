@@ -69,3 +69,30 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  mcp-registry:
+    name: Publish to the official MCP Registry
+    needs: npm   # the registry validates the npm package + its mcpName, so npm must be live first
+    runs-on: ubuntu-latest
+    continue-on-error: true   # the registry is in preview — an outage must not fail the release
+    permissions:
+      id-token: write   # OIDC: authenticates the io.github.bayway/* namespace, no stored secret
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync server.json version to the tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          jq --arg v "$VERSION" '.version = $v | (.packages[]?.version) = $v' server.json > server.tmp
+          mv server.tmp server.json
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json
+        run: ./mcp-publisher publish
