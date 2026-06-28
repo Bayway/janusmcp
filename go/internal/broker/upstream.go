@@ -124,7 +124,11 @@ func (m *UpstreamManager) transportFor(a *config.Account) (mcp.Transport, error)
 		}
 		t := &mcp.StreamableClientTransport{Endpoint: url}
 		if a.Auth == "oauth" {
-			h, err := newOAuthHandler("JanusMCP", m.secrets, "remote_oauth_"+a.ID)
+			clientName := a.ClientName
+			if clientName == "" {
+				clientName = "JanusMCP"
+			}
+			h, err := newOAuthHandler(clientName, m.secrets, "remote_oauth_"+a.ID)
 			if err != nil {
 				return nil, err
 			}

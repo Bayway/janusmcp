@@ -54,12 +54,49 @@ func Templates() map[string]Template {
 		// Remote servers with native OAuth (browser login, multi-account ready).
 		"supabase": httpOAuth("supabase", "Supabase", "https://mcp.supabase.com/mcp", "Supabase (hosted) — browser login, multi-account."),
 		"github":   httpOAuth("github", "GitHub", "https://api.githubcopilot.com/mcp/", "GitHub remote MCP — browser login (e.g. two orgs)."),
-		"figma":    httpOAuth("figma", "Figma", "https://mcp.figma.com/mcp", "Figma remote MCP — browser login."),
 		"notion":   httpOAuth("notion", "Notion", "https://mcp.notion.com/mcp", "Notion remote MCP — browser login (e.g. two workspaces)."),
 		"sentry":   httpOAuth("sentry", "Sentry", "https://mcp.sentry.dev/mcp", "Sentry remote MCP — browser login."),
 		"stripe":   httpOAuth("stripe", "Stripe", "https://mcp.stripe.com", "Stripe remote MCP — browser login (e.g. two accounts)."),
 		"hubspot":  httpOAuth("hubspot", "HubSpot", "https://mcp.hubspot.com/anthropic", "HubSpot remote MCP — browser login."),
 		"paypal":   httpOAuth("paypal", "PayPal", "https://mcp.paypal.com/mcp", "PayPal remote MCP — browser login."),
+
+		// Figma Dev Mode MCP server running locally in the desktop app — the
+		// recommended, legitimate path (no OAuth allowlist, no 403).
+		"figma-desktop": {
+			Name:        "figma-desktop",
+			Description: "Figma Dev Mode MCP server, local in the Figma desktop app (no OAuth).",
+			Build: func(id string) config.Account {
+				return config.Account{ID: id, Service: "figma", Label: "Figma (desktop)", Transport: "http", URL: "http://127.0.0.1:3845/mcp"}
+			},
+			Notes: func(id string) []string {
+				return []string{
+					"1) Apri l'app desktop di Figma → pannello Inspect (Dev Mode) → 'Enable desktop MCP server'.",
+					"2) Richiede un posto Dev/Full su un piano Figma a pagamento.",
+					"Nessun OAuth: il broker si collega in locale a http://127.0.0.1:3845/mcp.",
+					"Nota: usa l'account loggato nell'app desktop (un account alla volta).",
+				}
+			},
+		},
+
+		// Figma's REMOTE server restricts MCP access to an allowlist of approved
+		// clients, so OAuth dynamic client registration from a third party is
+		// rejected (403) unless you spoof an approved client_name.
+		"figma": {
+			Name:        "figma",
+			Description: "Figma remote MCP — restricted to Figma-approved clients (see notes).",
+			Build: func(id string) config.Account {
+				return config.Account{ID: id, Service: "figma", Label: "Figma", Transport: "http", URL: "https://mcp.figma.com/mcp", Auth: "oauth"}
+			},
+			Notes: func(id string) []string {
+				return []string{
+					"⚠️ Figma consente l'accesso al server REMOTO solo a client approvati (VS Code, Cursor, Claude Code…).",
+					"Da un client non approvato la registrazione OAuth fallisce con 403 Forbidden.",
+					"Via legittima per lavorare: usa invece il template 'figma-desktop' (server locale dell'app).",
+					"Workaround opt-in per il remoto (a tuo rischio, possibile violazione ToS): in config.json",
+					"  aggiungi all'account \"clientName\": \"Claude Code\", poi: janusmcp connect " + id + ".",
+				}
+			},
+		},
 
 		// Generic building blocks.
 		"http-oauth": {

@@ -35,6 +35,13 @@ type Account struct {
 	// Auth:"oauth" makes the broker perform the MCP-native OAuth flow (with dynamic
 	// client registration) against the remote server, opening a browser on first use.
 	Auth string `json:"auth,omitempty"` // "" | "oauth"
+
+	// ClientName overrides the OAuth dynamic-client-registration `client_name` sent
+	// to the remote server. Most servers ignore it; a few (e.g. Figma) allowlist it
+	// and reject unknown names with 403 Forbidden. Leave empty for the default
+	// ("JanusMCP"). Setting an approved client's name is a workaround that may
+	// violate that provider's terms — use at your own discretion.
+	ClientName string `json:"clientName,omitempty"`
 }
 
 // IsHTTP reports whether the account is a remote (Streamable HTTP) upstream.
