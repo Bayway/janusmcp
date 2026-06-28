@@ -6,7 +6,7 @@
 Add your credentials once, switch identity without reconnecting — from any LLM.
 
 [![CI](https://github.com/bayway/janusmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/bayway/janusmcp/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/bayway/janusmcp)](https://goreportcard.com/report/github.com/bayway/janusmcp)
+[![Release](https://img.shields.io/github/v/release/bayway/janusmcp?sort=semver)](https://github.com/bayway/janusmcp/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange)
 [![Website](https://img.shields.io/badge/website-janusmcp.dev-7c8cff)](https://janusmcp.dev)
