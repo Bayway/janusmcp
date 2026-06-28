@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JanusMCP — Privacy Policy</title>
+<meta name="description" content="JanusMCP privacy policy: a local-first, open-source tool that collects no data and stores credentials only in your OS keychain." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0d12'/%3E%3Cpath d='M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24' stroke='%237c8cff' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+  body{margin:0;background:#0a0c11;color:#e7eaf3;font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px 80px}
+  a{color:#7c8cff}
+  header{display:flex;align-items:center;gap:11px;padding:24px 0;font-weight:700;font-size:18px}
+  header svg{width:30px;height:30px}
+  h1{font-size:34px;letter-spacing:-.5px;margin:18px 0 4px}
+  .eff{color:#9aa3b7;margin:0 0 26px}
+  h2{font-size:20px;margin:34px 0 8px;letter-spacing:-.3px}
+  p,li{color:#c7cde0}
+  strong{color:#e7eaf3}
+  ul{padding-left:22px}
+  .box{background:#12151f;border:1px solid #1f2433;border-radius:12px;padding:16px 20px;margin:18px 0}
+  code{background:#0c0e15;border:1px solid #1f2433;border-radius:6px;padding:1px 6px;font:13px ui-monospace,Menlo,monospace;color:#dfe5fb}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid #1f2433;color:#9aa3b7;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#12151f"/><path d="M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24" stroke="#7c8cff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+    <a href="/" style="color:inherit;text-decoration:none">JanusMCP</a>
+  </header>
+
+  <h1>Privacy Policy</h1>
+  <p class="eff">Effective date: 28 June 2026</p>
+
+  <div class="box">
+    <strong>In short:</strong> JanusMCP runs entirely on your own computer. It has no backend
+    servers, sends us no data, and contains no analytics or telemetry. Your credentials stay in
+    your operating system's keychain and are used only to talk to the services <em>you</em> configure.
+  </div>
+
+  <h2>1. Who we are</h2>
+  <p>JanusMCP ("the Software") is a free, open-source command-line tool published under the MIT
+  license. The source code is available at
+  <a href="https://github.com/bayway/janusmcp">github.com/bayway/janusmcp</a>. The Software is a
+  local broker for the Model Context Protocol (MCP): it sits between an LLM client on your machine
+  and the MCP servers you choose to connect to.</p>
+
+  <h2>2. What we collect</h2>
+  <p><strong>Nothing.</strong> JanusMCP does not operate any servers, does not phone home, and
+  contains no analytics, tracking, advertising, or telemetry. The developers of JanusMCP receive no
+  data about you or your usage.</p>
+
+  <h2>3. Data the Software handles on your device</h2>
+  <p>To do its job, JanusMCP processes the following <em>locally, on your computer only</em>:</p>
+  <ul>
+    <li><strong>Credentials and tokens</strong> (e.g. personal access tokens, OAuth tokens) that you
+      add. These are stored in your operating system's secure keychain (macOS Keychain, Windows
+      Credential Manager, or the Linux Secret Service), or, if you opt in, in an encrypted file on
+      your disk. They are never written to configuration files in clear text and never sent to the
+      developers.</li>
+    <li><strong>Configuration</strong> — the list of accounts/services you define — stored in a
+      local <code>config.json</code> on your machine.</li>
+    <li><strong>Account selection state</strong> — which account is currently active — stored locally.</li>
+  </ul>
+
+  <h2>4. Network connections</h2>
+  <p>JanusMCP only makes the network connections required to perform the actions you request:</p>
+  <ul>
+    <li>To the <strong>MCP servers and APIs you configure</strong> (for example a Supabase or GitHub
+      MCP server), using the credentials you provided for that account.</li>
+    <li>To an <strong>OAuth provider's authorization and token endpoints</strong> when you choose to
+      log in via the browser, in order to obtain and refresh tokens.</li>
+    <li>When installed via npm, the package's post-install step downloads the matching prebuilt
+      binary from this project's <strong>GitHub Releases</strong>.</li>
+  </ul>
+  <p>JanusMCP does not route any of this traffic through servers controlled by its developers.
+  When run in HTTP mode, the Software binds to your local loopback interface
+  (<code>127.0.0.1</code>) by default.</p>
+
+  <h2>5. Credentials and the model context</h2>
+  <p>JanusMCP is designed so that secrets are <strong>not exposed to the language model</strong>.
+  Tokens are resolved at connection time and used only to authenticate to upstream services; they do
+  not pass through the chat/model context.</p>
+
+  <h2>6. Third parties</h2>
+  <p>The services you connect to (and the OAuth providers you authenticate with) are operated by
+  third parties and governed by <em>their own</em> privacy policies. JanusMCP is not responsible for
+  how those services handle your data.</p>
+
+  <h2>7. Children</h2>
+  <p>JanusMCP is a developer tool and is not directed to children under 13.</p>
+
+  <h2>8. Changes</h2>
+  <p>If this policy changes, the updated version will be published at this URL with a new effective
+  date, and tracked in the project's public git history.</p>
+
+  <h2>9. Contact</h2>
+  <p>Questions or privacy concerns: open an issue or a private security advisory at
+  <a href="https://github.com/bayway/janusmcp/issues">github.com/bayway/janusmcp</a>.</p>
+
+  <footer>
+    <a href="/">← Back to JanusMCP</a> · MIT-licensed · <a href="https://github.com/bayway/janusmcp">Source</a>
+  </footer>
+</div>
+</body>
+</html>

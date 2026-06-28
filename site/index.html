@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JanusMCP — one MCP endpoint, every account</title>
+<meta name="description" content="JanusMCP is a local, open-source multi-account MCP broker. Add your credentials once and switch identity without reconnecting — from any LLM client." />
+<meta property="og:title" content="JanusMCP — one MCP endpoint, every account" />
+<meta property="og:description" content="A local, open-source multi-account MCP broker. Switch identity without reconnecting, from any LLM." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://janusmcp.dev" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0d12'/%3E%3Cpath d='M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24' stroke='%237c8cff' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+  :root{
+    --bg:#0a0c11; --bg2:#0f121a; --panel:#12151f; --line:#1f2433;
+    --txt:#e7eaf3; --mut:#9aa3b7; --accent:#7c8cff; --accent2:#56e1c4;
+    --code:#0c0e15;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:radial-gradient(1200px 600px at 50% -10%, #161b2b 0%, var(--bg) 55%) no-repeat, var(--bg);
+    color:var(--txt); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:980px; margin:0 auto; padding:0 22px}
+  header{display:flex; align-items:center; justify-content:space-between; padding:22px 0}
+  .brand{display:flex; align-items:center; gap:11px; font-weight:700; letter-spacing:.2px; font-size:18px}
+  .brand svg{width:30px; height:30px}
+  nav a{color:var(--mut); margin-left:20px; font-size:14px}
+  nav a:hover{color:var(--txt); text-decoration:none}
+
+  .hero{text-align:center; padding:70px 0 30px}
+  .pill{display:inline-block; font-size:12px; letter-spacing:.6px; text-transform:uppercase; color:var(--accent2);
+    border:1px solid var(--line); border-radius:999px; padding:6px 13px; margin-bottom:22px}
+  h1{font-size:clamp(34px,6vw,58px); line-height:1.05; margin:.1em 0 .25em; font-weight:800; letter-spacing:-1px}
+  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{font-size:clamp(17px,2.4vw,21px); color:var(--mut); max-width:680px; margin:0 auto 30px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+  .btn{display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:11px; font-weight:600; font-size:15px}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#6a79ff); color:#0a0c11}
+  .btn.primary:hover{text-decoration:none; filter:brightness(1.07)}
+  .btn.ghost{border:1px solid var(--line); color:var(--txt)}
+  .btn.ghost:hover{text-decoration:none; border-color:var(--accent)}
+
+  section{padding:46px 0; border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,3.4vw,30px); margin:0 0 14px; letter-spacing:-.4px}
+  p.lead{color:var(--mut); max-width:720px}
+
+  .diagram{margin:26px auto 0; max-width:760px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; overflow:auto}
+  pre{margin:0; font:13.5px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#cfd6ee; white-space:pre}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:24px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px}
+  .card h3{margin:0 0 7px; font-size:16px}
+  .card p{margin:0; color:var(--mut); font-size:14.5px}
+  .card .ico{font-size:20px; margin-bottom:10px; display:block}
+
+  .install{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-top:22px}
+  .ibox{background:var(--code); border:1px solid var(--line); border-radius:12px; padding:16px}
+  .ibox .lbl{font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--mut); margin-bottom:8px}
+  .ibox code{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#dfe5fb; word-break:break-all}
+
+  .steps{counter-reset:s; margin-top:20px; padding:0; list-style:none}
+  .steps li{counter-increment:s; position:relative; padding:10px 0 10px 44px; color:var(--mut)}
+  .steps li::before{content:counter(s); position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:8px;
+    background:var(--panel); border:1px solid var(--line); color:var(--accent); font-weight:700; display:grid; place-items:center; font-size:13px}
+  .steps b{color:var(--txt)}
+  code.inl{background:var(--code); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font:12.5px ui-monospace,Menlo,monospace; color:#dfe5fb}
+
+  footer{border-top:1px solid var(--line); padding:30px 0 50px; color:var(--mut); font-size:14px; text-align:center}
+  footer a{color:var(--mut)}
+  .badges{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px}
+  .badges img{height:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#12151f"/><path d="M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24" stroke="#7c8cff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+      JanusMCP
+    </div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/bayway/janusmcp">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <span class="pill">Open-source · local-first · any LLM</span>
+    <h1>One MCP endpoint,<br><span class="grad">every account.</span></h1>
+    <p class="sub">JanusMCP is a local broker that lets you add your credentials once and
+      switch identity — the same service, many accounts — <b>without reconnecting</b>. Works with
+      Claude, ChatGPT, Gemini, Cursor and any MCP client.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Get started</a>
+      <a class="btn ghost" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
+    </div>
+    <div class="badges">
+      <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+      <img alt="npm" src="https://img.shields.io/badge/npm-%40bayway%2Fjanusmcp-cb3837?logo=npm" />
+      <img alt="MCP Registry" src="https://img.shields.io/badge/MCP_Registry-listed-7c8cff" />
+    </div>
+  </div>
+
+  <section id="problem">
+    <h2>The problem</h2>
+    <p class="lead">If you work with more than one company, you use the <i>same</i> MCP server
+      (Supabase, GitHub, Slack…) with <b>different identities</b> — a different account and token
+      per client. Most LLM clients hold one account at a time per connector: to switch you
+      disconnect, reconnect, and redo the login. Every time. The MCP protocol itself has no notion
+      of "account" — one session is one identity. JanusMCP fills that gap.</p>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="lead">JanusMCP sits between your LLM client and the real MCP servers. It exposes only
+      the <b>active</b> account's tools (so your context stays clean) plus a few control tools, and
+      switching identity is a single tool call that emits <code class="inl">tools/list_changed</code> — no reconnect.</p>
+    <div class="diagram"><pre>                 ┌─────────────────────────────┐   ┌─ Supabase (Client A)
+ LLM client ─MCP─▶│   JanusMCP broker           │─▶ ├─ Supabase (Client B)
+ (Claude/GPT/     │   active-account · vault ·  │   ├─ GitHub   (Client A)
+  Gemini/…)       │   per-session scoping       │   └─ …
+                 └─────────────────────────────┘</pre></div>
+    <div class="grid">
+      <div class="card"><span class="ico">🔀</span><h3>Switch, don't reconnect</h3><p>N identities for one service, swapped with a tool call. No re-login, no config edits.</p></div>
+      <div class="card"><span class="ico">🔒</span><h3>Secrets stay local</h3><p>Tokens live in your OS keychain, never in config files and never in the chat context.</p></div>
+      <div class="card"><span class="ico">🧩</span><h3>Any client</h3><p>Speaks standard MCP over stdio and Streamable HTTP — Claude, ChatGPT, Gemini, Cursor, Copilot.</p></div>
+      <div class="card"><span class="ico">🪶</span><h3>Context-safe</h3><p>Only the active account's tools are exposed — not N×tools — so the model stays focused.</p></div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="lead">Pick your channel — all published automatically on each release.</p>
+    <div class="install">
+      <div class="ibox"><div class="lbl">npm / npx</div><code>npx @bayway/janusmcp serve</code></div>
+      <div class="ibox"><div class="lbl">Homebrew (macOS/Linux)</div><code>brew install bayway/janusmcp/janusmcp</code></div>
+      <div class="ibox"><div class="lbl">Scoop (Windows)</div><code>scoop bucket add janusmcp https://github.com/bayway/scoop-janusmcp &amp;&amp; scoop install janusmcp</code></div>
+      <div class="ibox"><div class="lbl">Docker</div><code>docker run --rm -p 7332:7332 ghcr.io/bayway/janusmcp:latest</code></div>
+    </div>
+    <ol class="steps">
+      <li><b>Add accounts &amp; log in:</b> run <code class="inl">janusmcp ui</code> (local control panel) or <code class="inl">janusmcp add supabase</code>.</li>
+      <li><b>Connect a client:</b> <code class="inl">janusmcp install claude-desktop</code> (also: cursor, vscode, gemini, codex, claude-code).</li>
+      <li><b>Use it:</b> in chat call <code class="inl">janus_list_accounts</code>, then <code class="inl">janus_use_account</code> to switch identity on the fly.</li>
+    </ol>
+    <p class="lead" style="margin-top:18px">Full command reference: <code class="inl">janusmcp help</code> · Docs &amp; source on
+      <a href="https://github.com/bayway/janusmcp">GitHub</a>.</p>
+  </section>
+
+  <footer>
+    <div>MIT-licensed · built by <a href="https://github.com/bayway">Bayway</a> · listed on the
+      <a href="https://registry.modelcontextprotocol.io/">official MCP Registry</a></div>
+    <div style="margin-top:8px"><a href="https://github.com/bayway/janusmcp">GitHub</a> ·
+      <a href="/privacy">Privacy</a> ·
+      <a href="https://github.com/bayway/janusmcp/blob/main/SECURITY.md">Security</a></div>
+  </footer>
+
+</div>
+</body>
+</html>

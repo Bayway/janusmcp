@@ -72,11 +72,14 @@ func emptyObjectSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{Type: "object"}
 }
 
+func boolPtr(b bool) *bool { return &b }
+
 func (s *Session) registerControlTools() {
 	s.server.AddTool(&mcp.Tool{
 		Name:        controlPrefix + "list_accounts",
 		Description: "List configured accounts/services and which is active for this session.",
 		InputSchema: emptyObjectSchema(),
+		Annotations: &mcp.ToolAnnotations{Title: "List accounts", ReadOnlyHint: true},
 	}, s.handleListAccounts)
 
 	s.server.AddTool(&mcp.Tool{
@@ -91,12 +94,21 @@ func (s *Session) registerControlTools() {
 			},
 			Required: []string{"account_id"},
 		},
+		// Switches the active identity (local broker state) — not destructive,
+		// and idempotent (selecting the same account again is a no-op).
+		Annotations: &mcp.ToolAnnotations{
+			Title:           "Switch active account",
+			ReadOnlyHint:    false,
+			DestructiveHint: boolPtr(false),
+			IdempotentHint:  true,
+		},
 	}, s.handleUseAccount)
 
 	s.server.AddTool(&mcp.Tool{
 		Name:        controlPrefix + "whoami",
 		Description: "Return the active account for this session and how it was resolved.",
 		InputSchema: emptyObjectSchema(),
+		Annotations: &mcp.ToolAnnotations{Title: "Who am I", ReadOnlyHint: true},
 	}, s.handleWhoami)
 
 	// Exposed only when an OAuth store is configured.
@@ -113,6 +125,14 @@ func (s *Session) registerControlTools() {
 					"name":     {Type: "string", Description: "Name to store the token under (used as oauth:<name>)."},
 				},
 				Required: []string{"provider", "name"},
+			},
+			// Opens a browser OAuth flow with an external provider (open world) and
+			// writes a token to the OS keychain — state-changing but not destructive.
+			Annotations: &mcp.ToolAnnotations{
+				Title:           "OAuth login (opens browser)",
+				ReadOnlyHint:    false,
+				DestructiveHint: boolPtr(false),
+				OpenWorldHint:   boolPtr(true),
 			},
 		}, s.handleLogin)
 	}
