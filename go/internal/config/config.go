@@ -102,6 +102,18 @@ func parse(path string) (*Config, error) {
 // which only needs the provider registry and must not fail on unresolved tokens.
 func LoadRaw(path string) (*Config, error) { return parse(path) }
 
+// LoadRawOrEmpty behaves like LoadRaw, but returns an empty config (no accounts)
+// when the file does not exist — so `serve` can start before any account is added
+// (a fresh install, or container introspection like Glama's health check). Only the
+// control tools are exposed until accounts are configured. A malformed existing file
+// still returns an error.
+func LoadRawOrEmpty(path string) (*Config, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return &Config{BindingMode: BindingGlobal}, nil
+	}
+	return parse(path)
+}
+
 // Load parses, then resolves every env/arg value through the resolver. If resolve
 // is nil it falls back to plain ${ENV} expansion.
 func Load(path string, resolve SecretResolver) (*Config, error) {

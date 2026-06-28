@@ -1,0 +1,18 @@
+# Self-building image for Glama's introspection check (and anyone who wants to
+# `docker build` from source). Builds the broker from ./go and runs it on stdio.
+# The broker now starts even with no accounts configured, exposing the janus_*
+# control tools — enough for MCP introspection (tools/list) to succeed.
+
+# ---- build ----
+FROM golang:1.25-alpine AS build
+WORKDIR /src
+COPY go/ ./go/
+WORKDIR /src/go
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /out/janusmcp ./cmd/janusmcp
+
+# ---- run ----
+FROM node:22-alpine
+# node/npx present so stdio upstreams like @supabase/mcp-server-supabase work
+COPY --from=build /out/janusmcp /usr/bin/janusmcp
+ENV JANUS_TRANSPORT=stdio
+ENTRYPOINT ["janusmcp", "serve"]

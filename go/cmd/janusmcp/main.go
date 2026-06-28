@@ -198,7 +198,7 @@ func runServe() error {
 
 	// Parse without resolving: secrets (incl. fresh OAuth tokens) are resolved
 	// per upstream spawn by the manager, not once at startup.
-	cfg, err := config.LoadRaw(cpath)
+	cfg, err := config.LoadRawOrEmpty(cpath)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func runServe() error {
 	resolver := buildResolver(v, store)
 
 	defaultActive := cfg.DefaultAccount
-	if defaultActive == "" {
+	if defaultActive == "" && len(cfg.Accounts) > 0 {
 		defaultActive = cfg.Accounts[0].ID
 	}
 	statePath := envOr("JANUS_STATE", filepath.Join(cdir, ".janusmcp-state.json"))
