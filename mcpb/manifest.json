@@ -12,6 +12,7 @@
   "support": "https://github.com/bayway/janusmcp/issues",
   "license": "MIT",
   "keywords": ["mcp", "multi-account", "broker", "supabase", "oauth"],
+  "privacy_policies": ["https://janusmcp.dev/privacy"],
   "server": {
     "type": "binary",
     "entry_point": "server/janusmcp",

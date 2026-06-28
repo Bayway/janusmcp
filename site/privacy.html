@@ -64,7 +64,14 @@
     <li><strong>Account selection state</strong> — which account is currently active — stored locally.</li>
   </ul>
 
-  <h2>4. Network connections</h2>
+  <h2>4. Data retention</h2>
+  <p>Because everything is local, JanusMCP retains data only on <em>your own device</em>, for as
+  long as you choose to keep it. Credentials stay in your keychain until you remove them (for
+  example <code>janusmcp vault delete &lt;name&gt;</code> or via your OS keychain app); deleting
+  your <code>config.json</code> or uninstalling the Software removes the rest. The developers
+  retain nothing, because they receive nothing.</p>
+
+  <h2>5. Network connections</h2>
   <p>JanusMCP only makes the network connections required to perform the actions you request:</p>
   <ul>
     <li>To the <strong>MCP servers and APIs you configure</strong> (for example a Supabase or GitHub
@@ -78,24 +85,24 @@
   When run in HTTP mode, the Software binds to your local loopback interface
   (<code>127.0.0.1</code>) by default.</p>
 
-  <h2>5. Credentials and the model context</h2>
+  <h2>6. Credentials and the model context</h2>
   <p>JanusMCP is designed so that secrets are <strong>not exposed to the language model</strong>.
   Tokens are resolved at connection time and used only to authenticate to upstream services; they do
   not pass through the chat/model context.</p>
 
-  <h2>6. Third parties</h2>
+  <h2>7. Third parties</h2>
   <p>The services you connect to (and the OAuth providers you authenticate with) are operated by
   third parties and governed by <em>their own</em> privacy policies. JanusMCP is not responsible for
   how those services handle your data.</p>
 
-  <h2>7. Children</h2>
+  <h2>8. Children</h2>
   <p>JanusMCP is a developer tool and is not directed to children under 13.</p>
 
-  <h2>8. Changes</h2>
+  <h2>9. Changes</h2>
   <p>If this policy changes, the updated version will be published at this URL with a new effective
   date, and tracked in the project's public git history.</p>
 
-  <h2>9. Contact</h2>
+  <h2>10. Contact</h2>
   <p>Questions or privacy concerns: open an issue or a private security advisory at
   <a href="https://github.com/bayway/janusmcp/issues">github.com/bayway/janusmcp</a>.</p>
 

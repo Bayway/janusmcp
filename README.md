@@ -185,6 +185,19 @@ See [`design-broker-mcp-multi-account.md`](design-broker-mcp-multi-account.md) f
 - [`spike/`](spike/) — the original TypeScript spike, kept as a verified reference of behavior.
 - [`design-broker-mcp-multi-account.md`](design-broker-mcp-multi-account.md) — architecture & rationale.
 
+## Privacy Policy
+
+JanusMCP runs entirely on your machine. It has **no backend servers, collects no data, and
+contains no analytics or telemetry** — the developers receive nothing about you or your usage.
+Credentials and tokens are stored in your OS keychain (or, if you opt in, an encrypted local
+file) and are used only to authenticate to the services you configure; they never pass through
+the model context. Network connections are made only to the MCP servers and OAuth providers you
+configure. Because everything is local, data is retained only on your own device for as long as
+you keep it, and removing it (`janusmcp vault delete <name>`, or uninstalling) removes it
+entirely.
+
+Full policy: <https://janusmcp.dev/privacy>.
+
 ## Contributing
 
 Contributions are very welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). New connector
