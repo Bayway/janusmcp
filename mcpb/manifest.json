@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "janusmcp",
   "display_name": "JanusMCP",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "Local multi-account MCP broker — one endpoint, every account. Switch identity without reconnecting.",
   "long_description": "JanusMCP lets you use the same MCP service (Supabase, GitHub, …) with multiple accounts behind one endpoint. Add credentials once, switch identity with a tool call — no reconnecting, no re-login. Tokens live in your OS keychain.",
   "author": { "name": "Massimiliano Fiori" },

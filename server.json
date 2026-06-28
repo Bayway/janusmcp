@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Bayway/janusmcp",
   "description": "Local multi-account MCP broker — one endpoint, every account. Switch identity without reconnecting.",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "repository": {
     "url": "https://github.com/bayway/janusmcp",
     "source": "github"
@@ -11,7 +11,7 @@
     {
       "registryType": "npm",
       "identifier": "@bayway/janusmcp",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "transport": { "type": "stdio" }
     }
   ]

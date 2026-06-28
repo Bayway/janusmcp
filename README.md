@@ -161,6 +161,31 @@ servers behind one endpoint. JanusMCP solves the orthogonal, under-served proble
 **many identities for the same service**, without saturating the model's context, from any
 LLM, fully local. It's a credential-aware broker, not a flat aggregator.
 
+## Provider notes
+
+### Figma
+
+Figma offers two MCP servers, handled differently here:
+
+- **Local Dev Mode server (recommended).** Figma's desktop app hosts an MCP server on
+  `http://127.0.0.1:3845/mcp`. It's local, needs no OAuth, and works out of the box:
+  enable it in the desktop app (Dev Mode → Inspect → *Enable desktop MCP server*) and add it
+  with `janusmcp add figma-desktop figma_work`. Requires a Dev/Full seat on a paid Figma plan.
+
+- **Remote server (`https://mcp.figma.com/mcp`) — restricted.** Figma **allowlists the OAuth
+  `client_name`** during dynamic client registration and returns **403 Forbidden** to any client
+  that isn't in its [MCP catalog](https://www.figma.com/mcp-catalog/) (VS Code, Cursor, Claude
+  Code, …). JanusMCP is not (yet) an approved client.
+
+  > ⚠️ **Workaround — opt-in, use at your own risk.** You can make JanusMCP register under an
+  > approved name by setting `"clientName": "Claude Code"` on a remote `figma` account in your
+  > `config.json`. This impersonates an approved client and **may violate Figma's Terms of
+  > Service**; it can also break whenever Figma updates its allowlist. It is **not** enabled by
+  > default. Prefer the local Dev Mode server above for real work.
+
+  The proper long-term fix is for JanusMCP to be submitted to and approved for Figma's MCP
+  catalog, so no `client_name` override is needed. This is planned.
+
 ## Status & roadmap
 
 Alpha — the core is implemented and tested in Go.
