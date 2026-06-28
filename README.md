@@ -9,6 +9,7 @@ Add your credentials once, switch identity without reconnecting — from any LLM
 [![Go Report Card](https://goreportcard.com/badge/github.com/bayway/janusmcp)](https://goreportcard.com/report/github.com/bayway/janusmcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange)
+[![Website](https://img.shields.io/badge/website-janusmcp.dev-7c8cff)](https://janusmcp.dev)
 
 <br/>
 
@@ -110,6 +111,37 @@ For ChatGPT / Gemini / Cursor / Copilot, run HTTP and point them at the URL:
 JANUS_TRANSPORT=http JANUS_HTTP_PORT=7332 ./bin/janusmcp serve
 # → http://127.0.0.1:7332/mcp
 ```
+
+## Commands
+
+Run `janusmcp help` for the full reference. The essentials:
+
+| Command | What it does |
+|---|---|
+| `janusmcp serve` | Run the broker (default). Transports via env: `JANUS_TRANSPORT=stdio\|http\|both`, `JANUS_HTTP_HOST`, `JANUS_HTTP_PORT`. |
+| `janusmcp ui` | Open the local control panel — add accounts, log in, set secrets. |
+| `janusmcp add <template> [id]` | Add an account from a template (`janusmcp catalog` lists them). |
+| `janusmcp catalog` | List the built-in account templates. |
+| `janusmcp connect <id>` | Connect an account; for remote OAuth, opens the browser. |
+| `janusmcp status` | Show each account's login/secret status (no secret values). |
+| `janusmcp vault set <name>` / `delete <name>` | Store / remove a secret in the OS keychain. |
+| `janusmcp login <provider> <name>` | OAuth loopback login; token referenced as `oauth:<name>`. |
+| `janusmcp providers` | List built-in OAuth providers. |
+| `janusmcp install <client>` | Configure an LLM client to launch JanusMCP. |
+| `janusmcp uninstall <client>` | Remove JanusMCP from an LLM client's config. |
+| `janusmcp version` · `janusmcp help` | Version · this reference. |
+
+Supported `<client>` values for `install` / `uninstall`: `claude-desktop`, `claude-code`,
+`cursor`, `vscode`, `gemini`, `codex`, `chatgpt`, `print`. Run `janusmcp install list`
+(or `uninstall list`) to see each target and whether it's already configured.
+
+```bash
+janusmcp install claude-desktop      # one-command setup
+janusmcp uninstall claude-desktop    # clean removal (restart the client afterwards)
+```
+
+Inside any connected client you also get the control tools `janus_list_accounts`,
+`janus_use_account`, `janus_whoami`, and `janus_login`.
 
 ## Key features
 

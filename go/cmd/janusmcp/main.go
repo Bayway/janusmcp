@@ -1,11 +1,19 @@
 // Command janusmcp is the local multi-account MCP broker.
 //
-// Subcommands:
+// Subcommands (run `janusmcp help` for the full reference):
 //
 //	janusmcp serve                 # run the broker (default)
+//	janusmcp ui                    # local control panel
+//	janusmcp add <template> [id]   # add an account from a template
+//	janusmcp catalog               # list account templates
+//	janusmcp connect <account-id>  # connect/authorize an account
+//	janusmcp status                # show login/secret status
 //	janusmcp vault set <name>      # store a secret (read from stdin)
 //	janusmcp vault delete <name>   # remove a secret
-//	janusmcp login <provider>      # OAuth loopback login (skeleton)
+//	janusmcp login <provider>      # OAuth loopback login
+//	janusmcp providers             # list built-in OAuth providers
+//	janusmcp install <client>      # configure an LLM client
+//	janusmcp uninstall <client>    # remove from an LLM client
 //
 // Transports (serve): JANUS_TRANSPORT=stdio|http|both (default stdio),
 // JANUS_HTTP_HOST (127.0.0.1), JANUS_HTTP_PORT (7332).
@@ -16,6 +24,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -101,19 +110,59 @@ func main() {
 		err = runStatus()
 	case "install":
 		err = runInstall(os.Args[2:])
+	case "uninstall":
+		err = runUninstall(os.Args[2:])
 	case "ui":
 		err = runUI()
 	case "version", "--version", "-v":
 		fmt.Println("janusmcp", version)
+	case "help", "--help", "-h":
+		printUsage(os.Stdout)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown command %q\n", cmd)
-		fmt.Fprintln(os.Stderr, "commands: serve | ui | install | add | catalog | connect | status | vault | login | providers | version")
+		printUsage(os.Stderr)
 		os.Exit(2)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[janusmcp] error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// printUsage writes the full command reference. Kept in sync with the README.
+func printUsage(w io.Writer) {
+	fmt.Fprint(w, `JanusMCP — one MCP endpoint, every account.
+
+Usage:
+  janusmcp <command> [args]
+
+Commands:
+  serve                      Run the broker (default if no command given).
+                             Transports via env: JANUS_TRANSPORT=stdio|http|both
+                             (default stdio), JANUS_HTTP_HOST, JANUS_HTTP_PORT.
+  ui                         Open the local control panel (add accounts, log in).
+  add <template> [id]        Add an account from a template (see: catalog).
+  catalog                    List the built-in account templates.
+  connect <account-id>       Connect an account; for remote OAuth, opens the browser.
+  status                     Show each account's login/secret status (no values).
+  vault set <name>           Store a secret (read from stdin) in the OS keychain.
+  vault delete <name>        Remove a stored secret.
+  login <provider> <name>    OAuth loopback login; token stored as "oauth:<name>".
+  providers                  List built-in OAuth providers.
+  install <client>           Configure an LLM client to launch JanusMCP.
+  uninstall <client>         Remove JanusMCP from an LLM client's config.
+  version                    Print the version.
+  help                       Show this help.
+
+Clients (install/uninstall):
+  claude-desktop | claude-code | cursor | vscode | gemini | codex | chatgpt | print
+  (install/uninstall list   shows targets and which are configured.)
+
+Control tools (inside any client): janus_list_accounts, janus_use_account,
+janus_whoami, janus_login.
+
+Docs: https://github.com/bayway/janusmcp
+`)
 }
 
 func buildVault() (vault.Vault, error) {

@@ -1,0 +1,68 @@
+name: Build .mcpb bundles
+
+# A .mcpb (Claude Desktop one-click extension) embeds a single platform binary,
+# so we build one per OS/arch and attach them to the GitHub Release.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # upload assets to the release
+
+jobs:
+  mcpb:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: darwin,  goarch: arm64, name: macos_arm64,   exe: janusmcp }
+          - { goos: darwin,  goarch: amd64, name: macos_amd64,   exe: janusmcp }
+          - { goos: linux,   goarch: amd64, name: linux_amd64,   exe: janusmcp }
+          - { goos: windows, goarch: amd64, name: windows_amd64, exe: janusmcp.exe }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Sync manifest version to the tag (release runs)
+        if: github.event_name == 'release'
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          jq --arg v "$VER" '.version=$v' mcpb/manifest.json > mcpb/m.tmp && mv mcpb/m.tmp mcpb/manifest.json
+
+      - name: Build broker binary (${{ matrix.goos }}/${{ matrix.goarch }})
+        run: |
+          mkdir -p mcpb/server
+          ( cd go && GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
+              go build -ldflags "-s -w" -o ../mcpb/server/${{ matrix.exe }} ./cmd/janusmcp )
+
+      - name: Point manifest entry_point at the Windows binary
+        if: matrix.goos == 'windows'
+        run: |
+          jq '.server.entry_point="server/janusmcp.exe" | .server.mcp_config.command="${__dirname}/server/janusmcp.exe"' \
+            mcpb/manifest.json > mcpb/m.tmp && mv mcpb/m.tmp mcpb/manifest.json
+
+      - name: Pack .mcpb
+        run: npx -y @anthropic-ai/mcpb pack mcpb "janusmcp_${{ matrix.name }}.mcpb"
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: janusmcp_${{ matrix.name }}.mcpb
+
+      - name: Upload as artifact (manual runs)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: janusmcp_${{ matrix.name }}.mcpb
+          path: janusmcp_${{ matrix.name }}.mcpb

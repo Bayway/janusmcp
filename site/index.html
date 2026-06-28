@@ -12,112 +12,162 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0d12'/%3E%3Cpath d='M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24' stroke='%237c8cff' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
 <style>
   :root{
-    --bg:#0a0c11; --bg2:#0f121a; --panel:#12151f; --line:#1f2433;
-    --txt:#e7eaf3; --mut:#9aa3b7; --accent:#7c8cff; --accent2:#56e1c4;
-    --code:#0c0e15;
+    --bg:#0a0c11; --panel:#12151f; --panel2:#0e111a; --line:#1f2433; --line2:#2a3147;
+    --txt:#e9ecf5; --mut:#9aa3b7; --accent:#7c8cff; --accent2:#56e1c4; --code:#0b0e16;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{
-    margin:0; background:radial-gradient(1200px 600px at 50% -10%, #161b2b 0%, var(--bg) 55%) no-repeat, var(--bg);
-    color:var(--txt); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  a{color:var(--accent); text-decoration:none}
+  body{margin:0;color:var(--txt);background:var(--bg);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(900px 480px at 78% -8%, rgba(124,140,255,.18), transparent 60%),
+      radial-gradient(760px 420px at 8% 4%, rgba(86,225,196,.12), transparent 55%);}
+  a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
-  .wrap{max-width:980px; margin:0 auto; padding:0 22px}
-  header{display:flex; align-items:center; justify-content:space-between; padding:22px 0}
-  .brand{display:flex; align-items:center; gap:11px; font-weight:700; letter-spacing:.2px; font-size:18px}
-  .brand svg{width:30px; height:30px}
-  nav a{color:var(--mut); margin-left:20px; font-size:14px}
-  nav a:hover{color:var(--txt); text-decoration:none}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 22px}
 
-  .hero{text-align:center; padding:70px 0 30px}
-  .pill{display:inline-block; font-size:12px; letter-spacing:.6px; text-transform:uppercase; color:var(--accent2);
-    border:1px solid var(--line); border-radius:999px; padding:6px 13px; margin-bottom:22px}
-  h1{font-size:clamp(34px,6vw,58px); line-height:1.05; margin:.1em 0 .25em; font-weight:800; letter-spacing:-1px}
-  h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
-  .sub{font-size:clamp(17px,2.4vw,21px); color:var(--mut); max-width:680px; margin:0 auto 30px}
-  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
-  .btn{display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:11px; font-weight:600; font-size:15px}
-  .btn.primary{background:linear-gradient(90deg,var(--accent),#6a79ff); color:#0a0c11}
-  .btn.primary:hover{text-decoration:none; filter:brightness(1.07)}
-  .btn.ghost{border:1px solid var(--line); color:var(--txt)}
-  .btn.ghost:hover{text-decoration:none; border-color:var(--accent)}
+  /* nav */
+  .nav{position:sticky;top:0;z-index:50;backdrop-filter:saturate(140%) blur(10px);
+    background:rgba(10,12,17,.72);border-bottom:1px solid var(--line)}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:.2px;font-size:17px;color:var(--txt)}
+  .brand:hover{text-decoration:none}
+  .brand svg{width:28px;height:28px}
+  .navlinks a{color:var(--mut);margin-left:22px;font-size:14px}
+  .navlinks a:hover{color:var(--txt);text-decoration:none}
+  .navlinks .gh{color:var(--txt);border:1px solid var(--line2);padding:7px 13px;border-radius:9px}
+  @media(max-width:640px){.navlinks a:not(.gh){display:none}}
 
-  section{padding:46px 0; border-top:1px solid var(--line)}
-  h2{font-size:clamp(22px,3.4vw,30px); margin:0 0 14px; letter-spacing:-.4px}
-  p.lead{color:var(--mut); max-width:720px}
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:66px 0 40px}
+  @media(max-width:860px){.hero{grid-template-columns:1fr;gap:30px;padding:46px 0 18px}}
+  .pill{display:inline-block;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent2);
+    border:1px solid var(--line2);border-radius:999px;padding:6px 13px;margin-bottom:20px}
+  h1{font-size:clamp(34px,5.6vw,56px);line-height:1.04;margin:.06em 0 .28em;font-weight:800;letter-spacing:-1.3px}
+  .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:clamp(16px,2.2vw,19px);color:var(--mut);max-width:560px;margin:0 0 26px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:11px;font-weight:600;font-size:15px}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#6a79ff);color:#0a0c11}
+  .btn.primary:hover{text-decoration:none;filter:brightness(1.08)}
+  .btn.ghost{border:1px solid var(--line2);color:var(--txt)}
+  .btn.ghost:hover{text-decoration:none;border-color:var(--accent)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+  .chip{font-size:12.5px;color:var(--mut);border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:var(--panel)}
+  .chip b{color:var(--txt);font-weight:600}
 
-  .diagram{margin:26px auto 0; max-width:760px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; overflow:auto}
-  pre{margin:0; font:13.5px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#cfd6ee; white-space:pre}
+  /* terminal */
+  .term{background:var(--panel2);border:1px solid var(--line2);border-radius:14px;overflow:hidden;
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.8)}
+  .term .bar{display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid var(--line);background:#0c0f17}
+  .term .bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .dot1{background:#ff5f57}.dot2{background:#febc2e}.dot3{background:#28c840}
+  .term .bar span{margin-left:8px;color:var(--mut);font-size:12.5px}
+  .term pre{margin:0;padding:16px 16px 20px;min-height:268px;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d6dcf2;white-space:pre-wrap}
+  .term .p{color:var(--accent2)}.term .c{color:#fff}.term .o{color:var(--mut)}.term .hl{color:var(--accent)}
+  .cur{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;animation:bl 1s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
 
-  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:24px}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px}
-  .card h3{margin:0 0 7px; font-size:16px}
-  .card p{margin:0; color:var(--mut); font-size:14.5px}
-  .card .ico{font-size:20px; margin-bottom:10px; display:block}
+  /* sections */
+  section{padding:54px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(23px,3.4vw,31px);margin:0 0 12px;letter-spacing:-.5px}
+  p.lead{color:var(--mut);max-width:740px;font-size:16.5px}
 
-  .install{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-top:22px}
-  .ibox{background:var(--code); border:1px solid var(--line); border-radius:12px; padding:16px}
-  .ibox .lbl{font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--mut); margin-bottom:8px}
-  .ibox code{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#dfe5fb; word-break:break-all}
+  .diagram{margin:24px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;overflow:auto}
+  .diagram pre{margin:0;font:13px/1.7 ui-monospace,Menlo,Consolas,monospace;color:#cfd6ee;white-space:pre}
 
-  .steps{counter-reset:s; margin-top:20px; padding:0; list-style:none}
-  .steps li{counter-increment:s; position:relative; padding:10px 0 10px 44px; color:var(--mut)}
-  .steps li::before{content:counter(s); position:absolute; left:0; top:8px; width:28px; height:28px; border-radius:8px;
-    background:var(--panel); border:1px solid var(--line); color:var(--accent); font-weight:700; display:grid; place-items:center; font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:16px;margin-top:26px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;transition:border-color .2s,transform .2s}
+  .card:hover{border-color:var(--line2);transform:translateY(-2px)}
+  .card .ico{font-size:20px;margin-bottom:10px;display:block}
+  .card h3{margin:0 0 7px;font-size:16px}
+  .card p{margin:0;color:var(--mut);font-size:14.5px}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+  @media(max-width:680px){.two{grid-template-columns:1fr}}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .col h3{margin:0 0 10px;font-size:15px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .col ul{margin:0;padding-left:18px;color:#c7cde0}.col li{margin:7px 0}
+
+  .install{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:14px;margin-top:24px}
+  .ibox{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:15px}
+  .ibox .lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin-bottom:8px}
+  .ibox code{font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;color:#dfe5fb;word-break:break-all}
+  .steps{counter-reset:s;margin-top:22px;padding:0;list-style:none}
+  .steps li{counter-increment:s;position:relative;padding:9px 0 9px 44px;color:var(--mut)}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:7px;width:28px;height:28px;border-radius:8px;
+    background:var(--panel);border:1px solid var(--line2);color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:13px}
   .steps b{color:var(--txt)}
-  code.inl{background:var(--code); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font:12.5px ui-monospace,Menlo,monospace; color:#dfe5fb}
+  code.inl{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font:12.5px ui-monospace,Menlo,monospace;color:#dfe5fb}
 
-  footer{border-top:1px solid var(--line); padding:30px 0 50px; color:var(--mut); font-size:14px; text-align:center}
+  .band{margin:54px 0 0;text-align:center;border-top:1px solid var(--line);padding:56px 22px 10px}
+  .band h2{margin-bottom:8px}
+  .band p{color:var(--mut);margin:0 auto 22px;max-width:520px}
+
+  footer{padding:34px 0 56px;color:var(--mut);font-size:14px;text-align:center}
   footer a{color:var(--mut)}
-  .badges{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px}
-  .badges img{height:22px}
+
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.cur{animation:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <header>
-    <div class="brand">
+<div class="nav">
+  <div class="wrap">
+    <a class="brand" href="/">
       <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#12151f"/><path d="M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24" stroke="#7c8cff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
       JanusMCP
-    </div>
-    <nav>
+    </a>
+    <div class="navlinks">
       <a href="#how">How it works</a>
+      <a href="#different">Why</a>
       <a href="#install">Install</a>
-      <a href="https://github.com/bayway/janusmcp">GitHub</a>
-    </nav>
-  </header>
+      <a class="gh" href="https://github.com/bayway/janusmcp">★ GitHub</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
 
   <div class="hero">
-    <span class="pill">Open-source · local-first · any LLM</span>
-    <h1>One MCP endpoint,<br><span class="grad">every account.</span></h1>
-    <p class="sub">JanusMCP is a local broker that lets you add your credentials once and
-      switch identity — the same service, many accounts — <b>without reconnecting</b>. Works with
-      Claude, ChatGPT, Gemini, Cursor and any MCP client.</p>
-    <div class="cta">
-      <a class="btn primary" href="#install">Get started</a>
-      <a class="btn ghost" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
+    <div>
+      <span class="pill">Open-source · local-first · any LLM</span>
+      <h1>One MCP endpoint,<br><span class="grad">every account.</span></h1>
+      <p class="sub">A local broker that lets you add your credentials once and switch identity —
+        the same service, many accounts — <b>without reconnecting</b>. Works with Claude, ChatGPT,
+        Gemini, Cursor and any MCP client.</p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Get started</a>
+        <a class="btn ghost" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
+      </div>
+      <div class="chips">
+        <span class="chip"><b>npm</b> @bayway/janusmcp</span>
+        <span class="chip"><b>brew</b></span>
+        <span class="chip"><b>scoop</b></span>
+        <span class="chip"><b>docker</b></span>
+        <span class="chip"><b>MCP Registry</b> ✓</span>
+      </div>
     </div>
-    <div class="badges">
-      <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
-      <img alt="npm" src="https://img.shields.io/badge/npm-%40bayway%2Fjanusmcp-cb3837?logo=npm" />
-      <img alt="MCP Registry" src="https://img.shields.io/badge/MCP_Registry-listed-7c8cff" />
+
+    <div class="term" aria-hidden="true">
+      <div class="bar"><i class="dot1"></i><i class="dot2"></i><i class="dot3"></i><span>any LLM client · JanusMCP</span></div>
+      <pre id="screen"></pre>
     </div>
   </div>
 
-  <section id="problem">
+  <section id="problem" class="reveal">
     <h2>The problem</h2>
     <p class="lead">If you work with more than one company, you use the <i>same</i> MCP server
-      (Supabase, GitHub, Slack…) with <b>different identities</b> — a different account and token
-      per client. Most LLM clients hold one account at a time per connector: to switch you
-      disconnect, reconnect, and redo the login. Every time. The MCP protocol itself has no notion
-      of "account" — one session is one identity. JanusMCP fills that gap.</p>
+      (Supabase, GitHub, Slack…) with <b>different identities</b> — a different account and token per
+      client. Most LLM clients hold one account at a time per connector: to switch you disconnect,
+      reconnect, and redo the login. Every time. The MCP protocol itself has no notion of "account" —
+      one session is one identity. JanusMCP fills that gap.</p>
   </section>
 
-  <section id="how">
+  <section id="how" class="reveal">
     <h2>How it works</h2>
     <p class="lead">JanusMCP sits between your LLM client and the real MCP servers. It exposes only
       the <b>active</b> account's tools (so your context stays clean) plus a few control tools, and
@@ -130,12 +180,30 @@
     <div class="grid">
       <div class="card"><span class="ico">🔀</span><h3>Switch, don't reconnect</h3><p>N identities for one service, swapped with a tool call. No re-login, no config edits.</p></div>
       <div class="card"><span class="ico">🔒</span><h3>Secrets stay local</h3><p>Tokens live in your OS keychain, never in config files and never in the chat context.</p></div>
-      <div class="card"><span class="ico">🧩</span><h3>Any client</h3><p>Speaks standard MCP over stdio and Streamable HTTP — Claude, ChatGPT, Gemini, Cursor, Copilot.</p></div>
+      <div class="card"><span class="ico">🧩</span><h3>Any client</h3><p>Standard MCP over stdio and Streamable HTTP — Claude, ChatGPT, Gemini, Cursor, Copilot.</p></div>
       <div class="card"><span class="ico">🪶</span><h3>Context-safe</h3><p>Only the active account's tools are exposed — not N×tools — so the model stays focused.</p></div>
     </div>
   </section>
 
-  <section id="install">
+  <section id="different" class="reveal">
+    <h2>Different from an MCP gateway</h2>
+    <p class="lead">Gateways and proxies aggregate <i>different</i> servers behind one endpoint.
+      JanusMCP solves the orthogonal, under-served problem: <b>many identities for the same service</b>.</p>
+    <div class="two">
+      <div class="col"><h3>MCP gateways / proxies</h3><ul>
+        <li>Many different servers → one endpoint</li>
+        <li>Tools from everything loaded at once</li>
+        <li>No concept of per-account identity</li>
+      </ul></div>
+      <div class="col"><h3>JanusMCP</h3><ul>
+        <li>Many accounts → same service, one endpoint</li>
+        <li>Only the active account's tools exposed</li>
+        <li>Credential-aware: keychain vault + OAuth, fully local</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section id="install" class="reveal">
     <h2>Install</h2>
     <p class="lead">Pick your channel — all published automatically on each release.</p>
     <div class="install">
@@ -153,6 +221,15 @@
       <a href="https://github.com/bayway/janusmcp">GitHub</a>.</p>
   </section>
 
+  <div class="band reveal">
+    <h2>One endpoint. Every account.</h2>
+    <p>Stop disconnecting and reconnecting. Add JanusMCP and switch identity with a single tool call.</p>
+    <div class="cta" style="justify-content:center">
+      <a class="btn primary" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
+      <a class="btn ghost" href="#install">Install</a>
+    </div>
+  </div>
+
   <footer>
     <div>MIT-licensed · built by <a href="https://github.com/bayway">Bayway</a> · listed on the
       <a href="https://registry.modelcontextprotocol.io/">official MCP Registry</a></div>
@@ -162,5 +239,48 @@
   </footer>
 
 </div>
+
+<script>
+// Looping terminal demo of switching identity — pure, dependency-free.
+(function(){
+  var el = document.getElementById('screen'); if(!el) return;
+  var script = [
+    {t:'> janus_list_accounts\n', c:'c'},
+    {t:'  active: client_a\n', c:'o'},
+    {t:'  • client_a  (Supabase · Acme)   ←\n', c:'o'},
+    {t:'  • client_b  (Supabase · Globex)\n\n', c:'o'},
+    {t:'> list_tables\n', c:'c'},
+    {t:'  customers, orders, invoices\n\n', c:'o'},
+    {t:'> janus_use_account ', c:'c'},
+    {t:'client_b\n', c:'hl'},
+    {t:'  ✓ switched · tools/list_changed\n\n', c:'p'},
+    {t:'> list_tables\n', c:'c'},
+    {t:'  projects, deploys, billing\n', c:'o'},
+    {t:'\n  one endpoint · two accounts · no reconnect', c:'p'}
+  ];
+  var i=0, j=0, built='';
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+  function render(){ el.innerHTML = built + '<span class="cur"></span>'; }
+  function run(){
+    if(i>=script.length){ setTimeout(function(){i=0;j=0;built='';run();},2600); return; }
+    var seg=script[i];
+    if(j<seg.t.length){
+      var ch=seg.t[j++];
+      built+='<span class="'+seg.c+'">'+esc(ch)+'</span>';
+      render();
+      setTimeout(run, ch==='\n'?80:(seg.c==='o'?5:24));
+    } else { i++; j=0; setTimeout(run, 240); }
+  }
+  render(); setTimeout(run, 500);
+})();
+
+// Scroll reveal
+(function(){
+  var els=[].slice.call(document.querySelectorAll('.reveal'));
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return;}
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}})},{threshold:.12});
+  els.forEach(function(e){io.observe(e)});
+})();
+</script>
 </body>
 </html>

@@ -2,12 +2,13 @@
   "manifest_version": "0.3",
   "name": "janusmcp",
   "display_name": "JanusMCP",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Local multi-account MCP broker — one endpoint, every account. Switch identity without reconnecting.",
   "long_description": "JanusMCP lets you use the same MCP service (Supabase, GitHub, …) with multiple accounts behind one endpoint. Add credentials once, switch identity with a tool call — no reconnecting, no re-login. Tokens live in your OS keychain.",
   "author": { "name": "Massimiliano Fiori" },
   "repository": { "type": "git", "url": "https://github.com/bayway/janusmcp.git" },
-  "homepage": "https://github.com/bayway/janusmcp",
+  "homepage": "https://janusmcp.dev",
+  "documentation": "https://github.com/bayway/janusmcp#readme",
   "support": "https://github.com/bayway/janusmcp/issues",
   "license": "MIT",
   "keywords": ["mcp", "multi-account", "broker", "supabase", "oauth"],
@@ -26,7 +27,8 @@
   "tools": [
     { "name": "janus_list_accounts", "description": "List configured accounts and which is active" },
     { "name": "janus_use_account", "description": "Switch the active account/identity" },
-    { "name": "janus_whoami", "description": "Show the active account" }
+    { "name": "janus_whoami", "description": "Show the active account" },
+    { "name": "janus_login", "description": "Start a browser OAuth login and store the token in the OS keychain" }
   ],
   "tools_generated": true,
   "user_config": {

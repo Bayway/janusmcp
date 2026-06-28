@@ -19,6 +19,8 @@ That single push produces, automatically:
 | Linux packages | `.deb` / `.rpm` / `.apk` attached to the release | GoReleaser `nfpms` |
 | Docker | `ghcr.io/<owner>/janusmcp:<ver>` + `:latest` (amd64+arm64) | GoReleaser `dockers` |
 | npm | `npx @bayway/janusmcp` (downloads the matching binary) | `npm` job in the workflow |
+| MCP Registry | `io.github.Bayway/janusmcp` updated | `mcp-registry` job (OIDC) in the workflow |
+| Claude Desktop `.mcpb` | per-OS bundles (macOS arm64/amd64 · Linux · Windows) attached to the release | `mcpb.yml` (on release published) |
 
 ## One-time setup (before the first tag)
 
