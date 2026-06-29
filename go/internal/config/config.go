@@ -52,6 +52,28 @@ type Config struct {
 	BindingMode    BindingMode               `json:"bindingMode,omitempty"`
 	Accounts       []Account                 `json:"accounts"`
 	OAuthProviders map[string]oauth.Provider `json:"oauthProviders,omitempty"`
+
+	// Profiles group accounts of the SAME client across different services, e.g.
+	// "client_a": ["supabase_a", "github_a"]. Activating a profile exposes the
+	// tools of all its accounts at once and routes each call to the right upstream.
+	Profiles map[string][]string `json:"profiles,omitempty"`
+}
+
+// AccountsForSelector resolves an active selector (a profile name or an account id)
+// to the set of account ids it activates. ok is false for an unknown selector.
+func (c *Config) AccountsForSelector(sel string) (ids []string, ok bool) {
+	if sel == "" {
+		return nil, false
+	}
+	if ids, ok := c.Profiles[sel]; ok {
+		return ids, true
+	}
+	for i := range c.Accounts {
+		if c.Accounts[i].ID == sel {
+			return []string{sel}, true
+		}
+	}
+	return nil, false
 }
 
 func (a Account) DisplayLabel() string {
@@ -100,6 +122,24 @@ func parse(path string) (*Config, error) {
 			}
 		} else if a.Command == "" {
 			return nil, fmt.Errorf("config: stdio account %s missing command", a.ID)
+		}
+	}
+	accountExists := func(id string) bool {
+		for i := range cfg.Accounts {
+			if cfg.Accounts[i].ID == id {
+				return true
+			}
+		}
+		return false
+	}
+	for name, ids := range cfg.Profiles {
+		if len(ids) == 0 {
+			return nil, fmt.Errorf("config: profile %q is empty", name)
+		}
+		for _, id := range ids {
+			if !accountExists(id) {
+				return nil, fmt.Errorf("config: profile %q references unknown account %q", name, id)
+			}
 		}
 	}
 	return &cfg, nil

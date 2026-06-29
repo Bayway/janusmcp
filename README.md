@@ -141,7 +141,37 @@ janusmcp uninstall claude-desktop    # clean removal (restart the client afterwa
 ```
 
 Inside any connected client you also get the control tools `janus_list_accounts`,
-`janus_use_account`, `janus_whoami`, and `janus_login`.
+`janus_use_account`, `janus_whoami`, `janus_login`, `janus_use_profile`, and
+`janus_with_account`.
+
+### Profiles — a whole client's stack at once
+
+A **profile** groups accounts of the same client across different services. Activating
+it exposes the tools of *all* its accounts together, and each call is routed to the
+right upstream:
+
+```jsonc
+// config.json
+{
+  "accounts": [
+    { "id": "supabase_a", "service": "supabase", "transport": "http", "url": "https://mcp.supabase.com/mcp", "auth": "oauth" },
+    { "id": "github_a",   "service": "github",   "transport": "http", "url": "https://api.githubcopilot.com/mcp/", "auth": "oauth" }
+  ],
+  "profiles": {
+    "client_a": ["supabase_a", "github_a"]
+  }
+}
+```
+
+Then in chat: `janus_use_profile` with `{ "profile": "client_a" }` → Supabase **and**
+GitHub tools for Client A are available simultaneously. Colliding tool names across
+accounts are namespaced (`<account>_<tool>`).
+
+### One-shot cross-account calls
+
+`janus_with_account` runs a single call on another account **without** changing the
+active one — e.g. `{ "account_id": "client_b", "tool": "list_tables" }`. Omit `tool`
+to list that account's available tools first.
 
 ## Key features
 
@@ -195,8 +225,8 @@ Alpha — the core is implemented and tested in Go.
 - [x] OS-keychain vault + encrypted-file fallback
 - [x] OAuth loopback (PKCE) with auto-refresh and per-spawn token resolution
 - [x] One-command client install (`janusmcp install …`), Claude Desktop `.mcpb`, registry `server.json`
-- [ ] Multi-server "profiles" per client (Supabase + GitHub + Slack of Client A at once)
-- [ ] `with_account` one-shot cross-client calls
+- [x] Multi-server "profiles" per client (Supabase + GitHub + Slack of Client A at once)
+- [x] `with_account` one-shot cross-account calls
 - [ ] CLI / code-execution mode — invoke tools on demand via a CLI instead of loading all
       tool definitions, to cut token usage (à la "code execution with MCP")
 - [ ] SSE upstream transport (in addition to Streamable HTTP + stdio) for SSE-only servers

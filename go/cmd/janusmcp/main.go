@@ -159,7 +159,7 @@ Clients (install/uninstall):
   (install/uninstall list   shows targets and which are configured.)
 
 Control tools (inside any client): janus_list_accounts, janus_use_account,
-janus_whoami, janus_login.
+janus_whoami, janus_login, janus_use_profile, janus_with_account.
 
 Docs: https://github.com/bayway/janusmcp
 `)

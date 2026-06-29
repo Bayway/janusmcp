@@ -33,10 +33,30 @@ type Session struct {
 	core *Core
 
 	mu                 sync.Mutex
-	localActive        string // "" → follow the global active account
+	localActive        string // "" → follow the global active account/profile
 	registeredUpstream []string
+	routes             map[string]route // exposed tool name → upstream account + original name
 
 	server *mcp.Server
+}
+
+// route maps an exposed tool name to the upstream account and its original tool
+// name. With a single active account these are 1:1; with a profile (many accounts)
+// it lets the proxy send each call to the right upstream, and disambiguates
+// colliding tool names by namespacing them.
+type route struct {
+	account string
+	tool    string
+}
+
+// effectiveAccounts resolves the session's active selector to the set of account
+// ids whose tools should be exposed (one for an account, several for a profile).
+func (s *Session) effectiveAccounts() []string {
+	sel := s.effectiveActive()
+	if ids, ok := s.core.Cfg.AccountsForSelector(sel); ok {
+		return ids
+	}
+	return nil
 }
 
 // Server exposes the underlying MCP server (used by tests to attach a transport).
@@ -136,6 +156,41 @@ func (s *Session) registerControlTools() {
 			},
 		}, s.handleLogin)
 	}
+
+	// One-shot call on another account without switching the active one.
+	s.server.AddTool(&mcp.Tool{
+		Name: controlPrefix + "with_account",
+		Description: "Run a single tool call on another account WITHOUT changing the active account. " +
+			"Omit 'tool' to first list that account's available tools.",
+		InputSchema: &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"account_id": {Type: "string", Description: "Target account id."},
+				"tool":       {Type: "string", Description: "Tool to call; omit to list the account's tools."},
+				"arguments":  {Type: "object", Description: "Arguments object for the tool."},
+			},
+			Required: []string{"account_id"},
+		},
+		Annotations: &mcp.ToolAnnotations{Title: "Call a tool on another account", OpenWorldHint: boolPtr(true)},
+	}, s.handleWithAccount)
+
+	// Profiles: activate a whole client's set of accounts at once.
+	if len(s.core.Cfg.Profiles) > 0 {
+		s.server.AddTool(&mcp.Tool{
+			Name: controlPrefix + "use_profile",
+			Description: "Activate a profile (a named group of accounts) so the tools of all its " +
+				"accounts are exposed at once. scope: 'session' or 'global'.",
+			InputSchema: &jsonschema.Schema{
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"profile": {Type: "string", Description: "Profile name from config 'profiles'."},
+					"scope":   {Type: "string", Enum: []any{"session", "global"}},
+				},
+				Required: []string{"profile"},
+			},
+			Annotations: &mcp.ToolAnnotations{Title: "Switch active profile", DestructiveHint: boolPtr(false), IdempotentHint: true},
+		}, s.handleUseProfile)
+	}
 }
 
 func textResult(v any) *mcp.CallToolResult {
@@ -145,29 +200,42 @@ func textResult(v any) *mcp.CallToolResult {
 
 func (s *Session) handleListAccounts(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	active := s.effectiveActive()
+	activeSet := map[string]bool{}
+	for _, id := range s.effectiveAccounts() {
+		activeSet[id] = true
+	}
 	accts := make([]map[string]any, 0, len(s.core.Cfg.Accounts))
 	for _, a := range s.core.Cfg.Accounts {
 		accts = append(accts, map[string]any{
-			"id": a.ID, "service": a.Service, "label": a.DisplayLabel(), "active": a.ID == active,
+			"id": a.ID, "service": a.Service, "label": a.DisplayLabel(), "active": activeSet[a.ID],
 		})
 	}
-	return textResult(map[string]any{
+	out := map[string]any{
 		"active": active, "bindingMode": s.core.State.BindingMode(), "sessionId": s.ID, "accounts": accts,
-	}), nil
+	}
+	if len(s.core.Cfg.Profiles) > 0 {
+		out["profiles"] = s.core.Cfg.Profiles
+	}
+	return textResult(out), nil
 }
 
 func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	active := s.effectiveActive()
-	a, err := s.core.Manager.Account(active)
-	if err != nil {
-		return textResult(map[string]any{"error": err.Error()}), nil
-	}
 	source := "global"
 	if !s.localActiveEmpty() {
 		source = "session"
 	}
+	if accounts, isProfile := s.core.Cfg.Profiles[active]; isProfile {
+		return textResult(map[string]any{
+			"type": "profile", "active": active, "accounts": accounts, "resolvedFrom": source, "sessionId": s.ID,
+		}), nil
+	}
+	a, err := s.core.Manager.Account(active)
+	if err != nil {
+		return textResult(map[string]any{"active": active, "error": err.Error(), "sessionId": s.ID}), nil
+	}
 	return textResult(map[string]any{
-		"id": a.ID, "label": a.DisplayLabel(), "service": a.Service, "resolvedFrom": source, "sessionId": s.ID,
+		"type": "account", "id": a.ID, "label": a.DisplayLabel(), "service": a.Service, "resolvedFrom": source, "sessionId": s.ID,
 	}), nil
 }
 
@@ -185,7 +253,31 @@ func (s *Session) handleUseAccount(ctx context.Context, req *mcp.CallToolRequest
 	if _, err := s.core.Manager.Account(in.AccountID); err != nil {
 		return textResult(map[string]any{"ok": false, "error": err.Error()}), nil
 	}
-	scope := in.Scope
+	return s.setActiveSelector(ctx, in.AccountID, in.Scope), nil
+}
+
+// handleUseProfile activates a profile: the tools of all its accounts are exposed
+// at once and each call is routed to the right upstream.
+func (s *Session) handleUseProfile(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var in struct {
+		Profile string `json:"profile"`
+		Scope   string `json:"scope"`
+	}
+	if len(req.Params.Arguments) > 0 {
+		_ = json.Unmarshal(req.Params.Arguments, &in)
+	}
+	if s.core.State.BindingMode() == config.BindingLocked {
+		return textResult(map[string]any{"ok": false, "error": "bindingMode=locked: switching is disabled"}), nil
+	}
+	if _, ok := s.core.Cfg.Profiles[in.Profile]; !ok {
+		return textResult(map[string]any{"ok": false, "error": "unknown profile: " + in.Profile}), nil
+	}
+	return s.setActiveSelector(ctx, in.Profile, in.Scope), nil
+}
+
+// setActiveSelector switches the active account-or-profile for the session or
+// globally, then re-applies the exposed tool set.
+func (s *Session) setActiveSelector(ctx context.Context, selector, scope string) *mcp.CallToolResult {
 	if scope == "" {
 		if s.core.State.BindingMode() == config.BindingGlobal {
 			scope = "global"
@@ -193,13 +285,11 @@ func (s *Session) handleUseAccount(ctx context.Context, req *mcp.CallToolRequest
 			scope = "session"
 		}
 	}
-
 	if scope == "global" {
-		s.core.State.SetGlobal(in.AccountID)
+		s.core.State.SetGlobal(selector)
 		s.mu.Lock()
 		s.localActive = ""
 		s.mu.Unlock()
-		// Re-apply to every session that has no local override.
 		s.core.Registry.Each(func(sess *Session) {
 			if sess.localActiveEmpty() {
 				_ = sess.applyActiveTools(ctx)
@@ -207,11 +297,50 @@ func (s *Session) handleUseAccount(ctx context.Context, req *mcp.CallToolRequest
 		})
 	} else {
 		s.mu.Lock()
-		s.localActive = in.AccountID
+		s.localActive = selector
 		s.mu.Unlock()
 		_ = s.applyActiveTools(ctx)
 	}
-	return textResult(map[string]any{"ok": true, "active": in.AccountID, "scope": scope, "sessionId": s.ID}), nil
+	return textResult(map[string]any{"ok": true, "active": selector, "scope": scope, "sessionId": s.ID})
+}
+
+// handleWithAccount runs a one-shot call on a non-active account without changing
+// the session's active selection. With no "tool", it lists that account's tools.
+func (s *Session) handleWithAccount(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var in struct {
+		AccountID string          `json:"account_id"`
+		Tool      string          `json:"tool"`
+		Arguments json.RawMessage `json:"arguments"`
+	}
+	if len(req.Params.Arguments) > 0 {
+		_ = json.Unmarshal(req.Params.Arguments, &in)
+	}
+	if in.AccountID == "" {
+		return textResult(map[string]any{"ok": false, "error": "account_id is required"}), nil
+	}
+	if _, err := s.core.Manager.Account(in.AccountID); err != nil {
+		return textResult(map[string]any{"ok": false, "error": err.Error()}), nil
+	}
+	if in.Tool == "" {
+		tools, err := s.core.Manager.Tools(ctx, in.AccountID)
+		if err != nil {
+			return textResult(map[string]any{"ok": false, "error": err.Error()}), nil
+		}
+		list := make([]map[string]string, 0, len(tools))
+		for _, t := range tools {
+			list = append(list, map[string]string{"name": t.Name, "description": t.Description})
+		}
+		return textResult(map[string]any{"account": in.AccountID, "tools": list}), nil
+	}
+	cs, err := s.core.Manager.Session(ctx, in.AccountID)
+	if err != nil {
+		return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: "upstream connect error: " + err.Error()}}}, nil
+	}
+	raw := in.Arguments
+	if len(raw) == 0 || string(raw) == "null" {
+		raw = json.RawMessage("{}")
+	}
+	return cs.CallTool(ctx, &mcp.CallToolParams{Name: in.Tool, Arguments: raw})
 }
 
 func (s *Session) handleLogin(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -241,11 +370,20 @@ func (s *Session) handleLogin(ctx context.Context, req *mcp.CallToolRequest) (*m
 	}), nil
 }
 
-// proxyHandler forwards a tool call to this session's currently active upstream.
+// proxyHandler forwards a tool call to the upstream that owns the called tool.
+// The routing map (built by applyActiveTools) resolves the exposed name to the
+// right account and the original upstream tool name; this supports a single
+// active account and a multi-account profile alike.
 func (s *Session) proxyHandler() mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		active := s.effectiveActive()
-		cs, err := s.core.Manager.Session(ctx, active)
+		s.mu.Lock()
+		r, ok := s.routes[req.Params.Name]
+		s.mu.Unlock()
+		account, tool := r.account, r.tool
+		if !ok {
+			account, tool = s.effectiveActive(), req.Params.Name
+		}
+		cs, err := s.core.Manager.Session(ctx, account)
 		if err != nil {
 			return &mcp.CallToolResult{
 				IsError: true,
@@ -259,35 +397,52 @@ func (s *Session) proxyHandler() mcp.ToolHandler {
 		if len(raw) == 0 || string(raw) == "null" {
 			raw = json.RawMessage("{}")
 		}
-		return cs.CallTool(ctx, &mcp.CallToolParams{Name: req.Params.Name, Arguments: raw})
+		return cs.CallTool(ctx, &mcp.CallToolParams{Name: tool, Arguments: raw})
 	}
 }
 
 // applyActiveTools swaps the registered upstream tools to match the active account.
 // AddTool/RemoveTools after initialization trigger tools/list_changed notifications.
 func (s *Session) applyActiveTools(ctx context.Context) error {
-	active := s.effectiveActive()
-	tools, err := s.core.Manager.Tools(ctx, active)
-	if err != nil {
-		return err
-	}
+	accounts := s.effectiveAccounts()
+
 	s.mu.Lock()
 	old := s.registeredUpstream
 	s.mu.Unlock()
-
 	if len(old) > 0 {
 		s.server.RemoveTools(old...)
 	}
-	names := make([]string, 0, len(tools))
+
+	names := make([]string, 0)
+	routes := make(map[string]route)
 	h := s.proxyHandler()
-	for _, t := range tools {
-		s.server.AddTool(t, h)
-		names = append(names, t.Name)
+	var firstErr error
+	for _, acc := range accounts {
+		tools, err := s.core.Manager.Tools(ctx, acc)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue // a dead/unauthorized upstream shouldn't drop the others
+		}
+		for _, t := range tools {
+			name := t.Name
+			if _, clash := routes[name]; clash {
+				name = acc + "_" + t.Name // namespace on collision across accounts
+			}
+			reg := *t
+			reg.Name = name
+			s.server.AddTool(&reg, h)
+			routes[name] = route{account: acc, tool: t.Name}
+			names = append(names, name)
+		}
 	}
+
 	s.mu.Lock()
 	s.registeredUpstream = names
+	s.routes = routes
 	s.mu.Unlock()
-	return nil
+	return firstErr
 }
 
 // RunStdio serves a single stdio session (Claude Desktop/Code).
