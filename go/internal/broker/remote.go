@@ -2,11 +2,15 @@ package broker
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
@@ -15,113 +19,209 @@ import (
 	"github.com/bayway/janusmcp/internal/oauth"
 )
 
-// newOAuthHandler builds an MCP-native OAuth handler for a remote upstream.
-// It uses Dynamic Client Registration (RFC 7591) — no preconfigured client id —
-// and a localhost loopback redirect. On first use the SDK drives discovery + DCR,
-// then calls our fetcher to open the browser.
-//
-// If secrets is non-nil, the resulting access token is persisted to the vault
-// under key, so a valid token survives restarts (no re-login until it expires).
-func newOAuthHandler(appName string, secrets oauth.Secrets, key string) (auth.OAuthHandler, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return nil, fmt.Errorf("oauth loopback listen: %w", err)
-	}
-	redirect := fmt.Sprintf("http://%s/callback", ln.Addr().String())
-
-	fetcher := func(ctx context.Context, args *auth.AuthorizationArgs) (*auth.AuthorizationResult, error) {
-		return captureAuthCode(ctx, ln, args.URL)
-	}
-
-	inner, err := auth.NewAuthorizationCodeHandler(&auth.AuthorizationCodeHandlerConfig{
-		DynamicClientRegistrationConfig: &auth.DynamicClientRegistrationConfig{
-			Metadata: &oauthex.ClientRegistrationMetadata{
-				RedirectURIs:    []string{redirect},
-				ClientName:      appName,
-				ApplicationType: "native",
-			},
-		},
-		RedirectURL:              redirect,
-		AuthorizationCodeFetcher: fetcher,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if secrets == nil {
-		return inner, nil
-	}
-	return &persistentOAuthHandler{inner: inner, secrets: secrets, key: key}, nil
+// remoteAuthState is the per-account OAuth state persisted in the vault. Unlike the
+// SDK's handler (whose registered client is not exported), we own the dynamic client
+// registration so we can REUSE the same client across process restarts and refresh
+// the access token with its refresh token — no re-login until the refresh token dies.
+type remoteAuthState struct {
+	ClientID     string        `json:"client_id,omitempty"`
+	ClientSecret string        `json:"client_secret,omitempty"`
+	AuthURL      string        `json:"auth_url,omitempty"`
+	TokenURL     string        `json:"token_url,omitempty"`
+	Scopes       []string      `json:"scopes,omitempty"`
+	Token        *oauth2.Token `json:"token,omitempty"`
 }
 
-// persistentOAuthHandler wraps the SDK's auth handler to cache the token in the vault.
-// A persisted, still-valid token is served without any browser interaction; once it
-// expires the transport falls back to the full login flow.
-type persistentOAuthHandler struct {
-	inner   *auth.AuthorizationCodeHandler
-	secrets oauth.Secrets
-	key     string
+// remoteOAuthHandler implements the SDK's auth.OAuthHandler interface
+// (TokenSource + Authorize) with persistent, refreshable credentials.
+type remoteOAuthHandler struct {
+	clientName string // client_name for DCR (some servers allowlist it, e.g. Figma)
+	resource   string // the remote MCP endpoint (the OAuth "resource")
+	secrets    oauth.Secrets
+	key        string // vault key, e.g. remote_oauth_<account-id>
 }
 
-func (p *persistentOAuthHandler) TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
-	// 1. A token obtained by the inner handler in this process.
-	if ts, err := p.inner.TokenSource(ctx); err == nil && ts != nil {
-		if _, terr := ts.Token(); terr == nil {
-			return &persistingTokenSource{src: ts, h: p}, nil
-		}
-	}
-	// 2. A token persisted from a previous run.
-	if tok := p.load(); tok != nil && tok.Valid() {
-		return oauth2.StaticTokenSource(tok), nil
-	}
-	// 3. Nothing yet → let the transport trigger Authorize.
-	return nil, nil
+// newOAuthHandler builds the OAuth handler for a remote upstream. The loopback
+// callback port is fixed (JANUS_OAUTH_PORT, default 7334) so the registered
+// redirect URI is stable across restarts and the DCR client can be reused.
+func newOAuthHandler(clientName, resourceURL string, secrets oauth.Secrets, key string) (auth.OAuthHandler, error) {
+	return &remoteOAuthHandler{clientName: clientName, resource: resourceURL, secrets: secrets, key: key}, nil
 }
 
-func (p *persistentOAuthHandler) Authorize(ctx context.Context, req *http.Request, resp *http.Response) error {
-	if err := p.inner.Authorize(ctx, req, resp); err != nil {
-		return err
+func callbackRedirect() (string, string) {
+	port := os.Getenv("JANUS_OAUTH_PORT")
+	if port == "" {
+		port = "7334"
 	}
-	if ts, err := p.inner.TokenSource(ctx); err == nil && ts != nil {
-		if tok, err := ts.Token(); err == nil {
-			p.save(tok)
-		}
-	}
-	return nil
+	return port, fmt.Sprintf("http://127.0.0.1:%s/callback", port)
 }
 
-func (p *persistentOAuthHandler) load() *oauth2.Token {
-	raw, err := p.secrets.Get(p.key)
+func (h *remoteOAuthHandler) load() *remoteAuthState {
+	raw, err := h.secrets.Get(h.key)
 	if err != nil || raw == "" {
 		return nil
 	}
-	var t oauth2.Token
-	if json.Unmarshal([]byte(raw), &t) != nil {
+	var s remoteAuthState
+	if json.Unmarshal([]byte(raw), &s) != nil {
 		return nil
 	}
-	return &t
+	return &s
 }
 
-func (p *persistentOAuthHandler) save(tok *oauth2.Token) {
-	if tok == nil {
-		return
-	}
-	if b, err := json.Marshal(tok); err == nil {
-		_ = p.secrets.Set(p.key, string(b))
+func (h *remoteOAuthHandler) save(s *remoteAuthState) {
+	if b, err := json.Marshal(s); err == nil {
+		_ = h.secrets.Set(h.key, string(b))
 	}
 }
 
-// persistingTokenSource saves refreshed tokens back to the vault.
+func (h *remoteOAuthHandler) oauthConfig(s *remoteAuthState, redirect string) *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     s.ClientID,
+		ClientSecret: s.ClientSecret,
+		RedirectURL:  redirect,
+		Scopes:       s.Scopes,
+		Endpoint:     oauth2.Endpoint{AuthURL: s.AuthURL, TokenURL: s.TokenURL},
+	}
+}
+
+// TokenSource returns a refreshing token source if we have a persisted token and
+// client; oauth2 transparently refreshes the access token using the refresh token.
+// Returns (nil, nil) when there's nothing yet, so the transport triggers Authorize.
+func (h *remoteOAuthHandler) TokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+	s := h.load()
+	if s == nil || s.Token == nil || s.TokenURL == "" || s.ClientID == "" {
+		return nil, nil
+	}
+	base := h.oauthConfig(s, "").TokenSource(ctx, s.Token)
+	return &persistingTokenSource{src: base, h: h, st: s}, nil
+}
+
+// Authorize runs the full interactive flow on the first login (or after the refresh
+// token is rejected): discover endpoints, dynamically register a client (reused
+// afterwards), then authorization-code + PKCE in the browser, and persist everything.
+func (h *remoteOAuthHandler) Authorize(ctx context.Context, _ *http.Request, _ *http.Response) error {
+	s := h.load()
+	if s == nil {
+		s = &remoteAuthState{}
+	}
+
+	port, redirect := callbackRedirect()
+
+	if s.AuthURL == "" || s.TokenURL == "" || s.ClientID == "" {
+		meta, err := h.discover(ctx)
+		if err != nil {
+			return err
+		}
+		s.AuthURL, s.TokenURL = meta.AuthorizationEndpoint, meta.TokenEndpoint
+		if len(s.Scopes) == 0 {
+			s.Scopes = meta.ScopesSupported
+		}
+		if s.ClientID == "" {
+			if meta.RegistrationEndpoint == "" {
+				return fmt.Errorf("%s: no registration endpoint and no preregistered client", h.resource)
+			}
+			reg, err := oauthex.RegisterClient(ctx, meta.RegistrationEndpoint, &oauthex.ClientRegistrationMetadata{
+				RedirectURIs:    []string{redirect},
+				ClientName:      h.clientName,
+				ApplicationType: "native",
+				GrantTypes:      []string{"authorization_code", "refresh_token"},
+			}, nil)
+			if err != nil {
+				return fmt.Errorf("dynamic client registration (%s): %w", h.clientName, err)
+			}
+			s.ClientID, s.ClientSecret = reg.ClientID, reg.ClientSecret
+		}
+		h.save(s)
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:"+port)
+	if err != nil {
+		return fmt.Errorf("oauth callback listen on :%s (set JANUS_OAUTH_PORT if busy): %w", port, err)
+	}
+
+	cfg := h.oauthConfig(s, redirect)
+	verifier := oauth2.GenerateVerifier()
+	state := randomState()
+	authURL := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier))
+
+	res, err := captureAuthCode(ctx, ln, authURL)
+	if err != nil {
+		return err
+	}
+	if res.State != state {
+		return fmt.Errorf("oauth state mismatch (possible CSRF)")
+	}
+	tok, err := cfg.Exchange(ctx, res.Code, oauth2.VerifierOption(verifier))
+	if err != nil {
+		return fmt.Errorf("token exchange: %w", err)
+	}
+	s.Token = tok
+	h.save(s)
+	return nil
+}
+
+// discover resolves the authorization server metadata for the remote resource via
+// the RFC 9728 well-known locations derived from the resource origin.
+func (h *remoteOAuthHandler) discover(ctx context.Context) (*oauthex.AuthServerMeta, error) {
+	u, err := url.Parse(h.resource)
+	if err != nil {
+		return nil, fmt.Errorf("parse resource url: %w", err)
+	}
+	origin := u.Scheme + "://" + u.Host
+
+	// Candidate protected-resource-metadata URLs (path-based first, per RFC 9728).
+	prmCandidates := []string{
+		origin + "/.well-known/oauth-protected-resource" + u.Path,
+		origin + "/.well-known/oauth-protected-resource",
+	}
+
+	var prm *oauthex.ProtectedResourceMetadata
+	for _, cand := range prmCandidates {
+		if m, e := oauthex.GetProtectedResourceMetadata(ctx, cand, h.resource, nil); e == nil {
+			prm = m
+			break
+		}
+	}
+	if prm == nil || len(prm.AuthorizationServers) == 0 {
+		return nil, fmt.Errorf("could not discover authorization server for %s", h.resource)
+	}
+
+	issuer := strings.TrimRight(prm.AuthorizationServers[0], "/")
+	for _, asURL := range []string{
+		issuer + "/.well-known/oauth-authorization-server",
+		issuer + "/.well-known/openid-configuration",
+	} {
+		if meta, e := oauthex.GetAuthServerMeta(ctx, asURL, issuer, nil); e == nil && meta != nil {
+			return meta, nil
+		}
+	}
+	return nil, fmt.Errorf("could not fetch authorization server metadata for %s", issuer)
+}
+
+func randomState() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+// persistingTokenSource saves refreshed tokens back to the vault so a refreshed
+// access token (and any rotated refresh token) survives the next restart.
 type persistingTokenSource struct {
 	src oauth2.TokenSource
-	h   *persistentOAuthHandler
+	h   *remoteOAuthHandler
+	st  *remoteAuthState
 }
 
-func (s *persistingTokenSource) Token() (*oauth2.Token, error) {
-	tok, err := s.src.Token()
-	if err == nil && tok != nil {
-		s.h.save(tok)
+func (p *persistingTokenSource) Token() (*oauth2.Token, error) {
+	tok, err := p.src.Token()
+	if err != nil {
+		return nil, err
 	}
-	return tok, err
+	if tok != nil && (p.st.Token == nil || tok.AccessToken != p.st.Token.AccessToken || tok.RefreshToken != p.st.Token.RefreshToken) {
+		p.st.Token = tok
+		p.h.save(p.st)
+	}
+	return tok, nil
 }
 
 // captureAuthCode opens authURL in the browser and waits for the authorization
