@@ -20,9 +20,9 @@ const (
 )
 
 type Account struct {
-	ID      string            `json:"id"`
-	Service string            `json:"service"`
-	Label   string            `json:"label,omitempty"`
+	ID      string `json:"id"`
+	Service string `json:"service"`
+	Label   string `json:"label,omitempty"`
 
 	// stdio upstream (default): a local process speaking MCP over stdin/stdout.
 	Command string            `json:"command,omitempty"`
