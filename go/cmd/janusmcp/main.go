@@ -3,6 +3,9 @@
 // Subcommands (run `janusmcp help` for the full reference):
 //
 //	janusmcp serve                 # run the broker (default)
+//	janusmcp tools [selector]      # code-exec mode: compact tool list
+//	janusmcp schema <tool>         # code-exec mode: one tool's full schema
+//	janusmcp call <tool> [flags]   # code-exec mode: invoke a tool
 //	janusmcp ui                    # local control panel
 //	janusmcp add <template> [id]   # add an account from a template
 //	janusmcp catalog               # list account templates
@@ -94,6 +97,12 @@ func main() {
 	switch cmd {
 	case "serve":
 		err = runServe()
+	case "tools":
+		err = runTools(os.Args[2:])
+	case "schema":
+		err = runSchema(os.Args[2:])
+	case "call":
+		err = runCall(os.Args[2:])
 	case "vault":
 		err = runVault(os.Args[2:])
 	case "login":
@@ -140,6 +149,12 @@ Commands:
   serve                      Run the broker (default if no command given).
                              Transports via env: JANUS_TRANSPORT=stdio|http|both
                              (default stdio), JANUS_HTTP_HOST, JANUS_HTTP_PORT.
+  tools [selector] [--json]  Code-execution mode: compact tool list for the active
+                             account/profile (or the given one) — no MCP client needed.
+  schema <tool> [--account]  Full JSON definition (input schema) of one tool.
+  call <tool> [--account <id|profile>] [--args '<json>']
+                             Invoke a tool and print its result; JSON args also
+                             accepted on stdin. Exits non-zero on tool error.
   ui                         Open the local control panel (add accounts, log in).
   add <template> [id]        Add an account from a template (see: catalog).
   catalog                    List the built-in account templates.

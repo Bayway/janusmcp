@@ -119,6 +119,9 @@ Run `janusmcp help` for the full reference. The essentials:
 | Command | What it does |
 |---|---|
 | `janusmcp serve` | Run the broker (default). Transports via env: `JANUS_TRANSPORT=stdio\|http\|both`, `JANUS_HTTP_HOST`, `JANUS_HTTP_PORT`. |
+| `janusmcp tools [selector]` | Code-execution mode: compact tool list for the active (or given) account/profile. `--json` for full definitions. |
+| `janusmcp schema <tool>` | Full JSON definition (input schema) of one tool. `--account <id\|profile>` to disambiguate. |
+| `janusmcp call <tool>` | Invoke a tool and print its result. `--account`, `--args '<json>'` (or JSON on stdin). |
 | `janusmcp ui` | Open the local control panel — add accounts, log in, set secrets. |
 | `janusmcp add <template> [id]` | Add an account from a template (`janusmcp catalog` lists them). |
 | `janusmcp catalog` | List the built-in account templates. |
@@ -172,6 +175,28 @@ accounts are namespaced (`<account>_<tool>`).
 `janus_with_account` runs a single call on another account **without** changing the
 active one — e.g. `{ "account_id": "client_b", "tool": "list_tables" }`. Omit `tool`
 to list that account's available tools first.
+
+### Code-execution mode — tools from the terminal, zero context cost
+
+Loading every MCP tool definition into an LLM context is expensive. In code-execution
+mode an agent (or you) invokes tools **on demand from the shell** instead — à la
+["code execution with MCP"](https://www.anthropic.com/engineering/code-execution-with-mcp) —
+so the context holds only the results it actually asked for:
+
+```bash
+janusmcp tools                        # compact list for the active account/profile
+janusmcp tools client_a               # ...or any account/profile explicitly
+janusmcp schema list_tables           # full input schema of ONE tool, only when needed
+janusmcp call list_tables --args '{"schemas":["public"]}'
+janusmcp call ping --account azienda_b          # cross-account without switching
+echo '{"sql":"select 1"}' | janusmcp call db_query   # JSON args via stdin too
+```
+
+`call` prints the tool's text content to stdout and exits non-zero on a tool error, so
+it composes with pipes and scripts. Selectors resolve exactly like in the broker: the
+persisted active account by default, or any account id / profile name; a name that
+collides across a profile's accounts must be disambiguated with `--account`. Secrets
+resolve through the same vault/OAuth stack as `serve` — nothing extra to configure.
 
 ## Key features
 
@@ -227,8 +252,8 @@ Alpha — the core is implemented and tested in Go.
 - [x] One-command client install (`janusmcp install …`), Claude Desktop `.mcpb`, registry `server.json`
 - [x] Multi-server "profiles" per client (Supabase + GitHub + Slack of Client A at once)
 - [x] `with_account` one-shot cross-account calls
-- [ ] CLI / code-execution mode — invoke tools on demand via a CLI instead of loading all
-      tool definitions, to cut token usage (à la "code execution with MCP")
+- [x] CLI / code-execution mode (`janusmcp tools` / `schema` / `call`) — invoke tools on
+      demand instead of loading all definitions, to cut token usage
 - [ ] SSE upstream transport (in addition to Streamable HTTP + stdio) for SSE-only servers
 - [ ] Signed, per-OS release binaries & registry auto-publish in CI
 
