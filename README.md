@@ -218,6 +218,38 @@ LLM, fully local. It's a credential-aware broker, not a flat aggregator.
 
 ## Provider notes
 
+### ActiveCampaign
+
+ActiveCampaign ships an **official remote MCP server** with a **unique URL per account**
+(ActiveCampaign → *Settings → Developer → Remote MCP URL*) and browser-based OAuth — a
+natural fit for the multi-account broker. Add one account per client:
+
+```bash
+janusmcp add activecampaign ac_clientA   # then paste that client's Remote MCP URL in config.json
+janusmcp connect ac_clientA              # browser login
+```
+
+Because the URL is per-account, the template seeds a `REPLACE_ACTIVECAMPAIGN_MCP_URL`
+placeholder you must replace with your own URL. Login uses dynamic client registration, so
+no client ID/secret is needed.
+
+### Google Workspace (Gmail / Drive / Calendar / Chat)
+
+Google offers **remote MCP servers** for Gmail, Drive, Calendar and Chat, but — unlike most
+providers here — they require **your own OAuth client** (created in the Google Cloud
+Console); they don't support dynamic client registration. JanusMCP supports this via the
+`oauthClientId` / `oauthClientSecret` / `scopes` fields, preset by the `gmail`,
+`google-drive`, `google-calendar` and `google-chat` templates:
+
+```bash
+export GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=...
+janusmcp add gmail gmail_clientA
+janusmcp connect gmail_clientA           # browser login as client A
+```
+
+Full one-time Google Cloud setup (enable MCP APIs, consent screen, Desktop OAuth client)
+and scope details are in [`go/docs/google-workspace.md`](go/docs/google-workspace.md).
+
 ### Figma
 
 Figma offers two MCP servers, handled differently here:
