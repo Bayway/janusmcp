@@ -9,6 +9,41 @@
 <meta property="og:description" content="A local, open-source multi-account MCP broker. Switch identity without reconnecting, from any LLM." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://janusmcp.dev" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="canonical" href="https://janusmcp.dev/" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "JanusMCP",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Windows, Linux",
+  "description": "Local, open-source multi-account MCP broker. Add credentials once and switch identity — the same service, many accounts — without reconnecting, from any LLM client.",
+  "url": "https://janusmcp.dev",
+  "downloadUrl": "https://github.com/bayway/janusmcp",
+  "license": "https://opensource.org/licenses/MIT",
+  "author": { "@type": "Person", "name": "Bayway" },
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "What is JanusMCP?",
+      "acceptedAnswer": { "@type": "Answer", "text": "JanusMCP is a local, open-source Model Context Protocol (MCP) broker that lets you use the same service (Supabase, GitHub, Slack…) with multiple accounts behind one endpoint. You add your credentials once and switch identity with a tool call, without disconnecting and reconnecting." } },
+    { "@type": "Question", "name": "How is it different from an MCP gateway?",
+      "acceptedAnswer": { "@type": "Answer", "text": "MCP gateways aggregate different servers behind one endpoint. JanusMCP solves the orthogonal problem: many identities for the SAME service, without saturating the model's context, fully local. It is a credential-aware broker, not a flat aggregator." } },
+    { "@type": "Question", "name": "Which LLM clients does JanusMCP work with?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Any MCP client, because it speaks standard MCP over stdio and Streamable HTTP: Claude Desktop and Claude Code, ChatGPT, Gemini, Cursor, and Copilot." } },
+    { "@type": "Question", "name": "Where are my credentials stored?",
+      "acceptedAnswer": { "@type": "Answer", "text": "In your operating system's keychain (macOS Keychain, Windows Credential Manager, or the Linux Secret Service). Tokens are never written to config files in clear text and never pass through the model's chat context." } },
+    { "@type": "Question", "name": "Is JanusMCP free and open source?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. JanusMCP is MIT-licensed and free. The source is on GitHub and it is listed on the official MCP Registry." } }
+  ]
+}
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0d12'/%3E%3Cpath d='M32 12v40M22 20a14 14 0 000 24M42 20a14 14 0 010 24' stroke='%237c8cff' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
 <style>
   :root{
@@ -219,6 +254,31 @@
     </ol>
     <p class="lead" style="margin-top:18px">Full command reference: <code class="inl">janusmcp help</code> · Docs &amp; source on
       <a href="https://github.com/bayway/janusmcp">GitHub</a>.</p>
+  </section>
+
+  <section id="faq" class="reveal">
+    <h2>FAQ</h2>
+    <div style="max-width:760px">
+      <h3 style="margin:22px 0 4px;font-size:17px">What is JanusMCP?</h3>
+      <p class="lead">A local, open-source MCP broker that lets you use the same service (Supabase,
+        GitHub, Slack…) with multiple accounts behind one endpoint. Add credentials once and switch
+        identity with a tool call — no disconnect, no reconnect.</p>
+      <h3 style="margin:22px 0 4px;font-size:17px">How is it different from an MCP gateway?</h3>
+      <p class="lead">Gateways aggregate <i>different</i> servers behind one endpoint. JanusMCP solves
+        the orthogonal problem: many identities for the <b>same</b> service, without saturating the
+        model's context, fully local. It's a credential-aware broker, not a flat aggregator.</p>
+      <h3 style="margin:22px 0 4px;font-size:17px">Which LLM clients does it work with?</h3>
+      <p class="lead">Any MCP client — it speaks standard MCP over stdio and Streamable HTTP: Claude
+        Desktop and Claude Code, ChatGPT, Gemini, Cursor, and Copilot.</p>
+      <h3 style="margin:22px 0 4px;font-size:17px">Where are my credentials stored?</h3>
+      <p class="lead">In your OS keychain (macOS Keychain, Windows Credential Manager, or the Linux
+        Secret Service). Tokens are never written to config files in clear text and never pass through
+        the model's chat context.</p>
+      <h3 style="margin:22px 0 4px;font-size:17px">Is it free and open source?</h3>
+      <p class="lead">Yes — MIT-licensed and free. The source is on
+        <a href="https://github.com/bayway/janusmcp">GitHub</a> and it's listed on the official
+        <a href="https://registry.modelcontextprotocol.io/">MCP Registry</a>.</p>
+    </div>
   </section>
 
   <div class="band reveal">

@@ -2,10 +2,19 @@ name: Build .mcpb bundles
 
 # A .mcpb (Claude Desktop one-click extension) embeds a single platform binary,
 # so we build one per OS/arch and attach them to the GitHub Release.
+#
+# Triggered by the tag push itself, NOT by `release: published`: GoReleaser
+# creates the release with GITHUB_TOKEN, and GitHub never fires workflow events
+# for actions taken with that token. workflow_dispatch (with an explicit tag)
+# backfills bundles onto an existing release.
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build for (e.g. v0.2.0)"
+        required: true
 
 permissions:
   contents: write   # upload assets to the release
@@ -21,8 +30,12 @@ jobs:
           - { goos: darwin,  goarch: amd64, name: macos_amd64,   exe: janusmcp }
           - { goos: linux,   goarch: amd64, name: linux_amd64,   exe: janusmcp }
           - { goos: windows, goarch: amd64, name: windows_amd64, exe: janusmcp.exe }
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-go@v5
         with:
@@ -33,17 +46,16 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Sync manifest version to the tag (release runs)
-        if: github.event_name == 'release'
+      - name: Sync manifest version to the tag
         run: |
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           jq --arg v "$VER" '.version=$v' mcpb/manifest.json > mcpb/m.tmp && mv mcpb/m.tmp mcpb/manifest.json
 
       - name: Build broker binary (${{ matrix.goos }}/${{ matrix.goarch }})
         run: |
           mkdir -p mcpb/server
           ( cd go && GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
-              go build -ldflags "-s -w" -o ../mcpb/server/${{ matrix.exe }} ./cmd/janusmcp )
+              go build -ldflags "-s -w -X main.version=${TAG#v}" -o ../mcpb/server/${{ matrix.exe }} ./cmd/janusmcp )
 
       - name: Point manifest entry_point at the Windows binary
         if: matrix.goos == 'windows'
@@ -54,15 +66,20 @@ jobs:
       - name: Pack .mcpb
         run: npx -y @anthropic-ai/mcpb pack mcpb "janusmcp_${{ matrix.name }}.mcpb"
 
+      # The Release workflow (GoReleaser) creates the release for this tag in
+      # parallel; wait for it so the upload never races the release creation.
+      - name: Wait for the GitHub Release to exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 60); do
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && exit 0
+            sleep 20
+          done
+          echo "release $TAG not found after 20 minutes" >&2; exit 1
+
       - name: Attach to the release
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
           files: janusmcp_${{ matrix.name }}.mcpb
-
-      - name: Upload as artifact (manual runs)
-        if: github.event_name != 'release'
-        uses: actions/upload-artifact@v4
-        with:
-          name: janusmcp_${{ matrix.name }}.mcpb
-          path: janusmcp_${{ matrix.name }}.mcpb

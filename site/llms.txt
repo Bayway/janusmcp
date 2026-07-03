@@ -1,0 +1,30 @@
+# JanusMCP
+
+> JanusMCP is a local, open-source multi-account MCP (Model Context Protocol) broker.
+> Add your credentials once and switch identity — the same service (Supabase, GitHub,
+> Slack…) with many accounts — without disconnecting and reconnecting, from any LLM
+> client (Claude, ChatGPT, Gemini, Cursor). Tokens stay in your OS keychain and never
+> pass through the model context; only the active account's tools are exposed, so the
+> context stays small.
+
+## What it does
+- One MCP endpoint, every account. Switch identity with a tool call (`janus_use_account`) — no reconnect, no re-login.
+- Profiles group a client's accounts across services (e.g. Supabase + GitHub of "Client A") and activate them together (`janus_use_profile`).
+- One-shot cross-account calls without switching the active account (`janus_with_account`).
+- Local-first: stdio + Streamable HTTP transports; OS-keychain vault; OAuth (PKCE) with persistent, auto-refreshing tokens.
+- Works with any MCP client and is listed on the official MCP Registry.
+
+## How it is different
+MCP gateways/proxies aggregate different servers behind one endpoint. JanusMCP solves the orthogonal problem: many identities for the SAME service, without saturating the model's context, fully local. It is a credential-aware broker, not a flat aggregator.
+
+## Install
+- npm: `npx @bayway/janusmcp serve`
+- Homebrew (macOS/Linux): `brew install bayway/janusmcp/janusmcp`
+- Scoop (Windows): `scoop bucket add janusmcp https://github.com/bayway/scoop-janusmcp && scoop install janusmcp`
+- Docker: `docker run --rm -p 7332:7332 ghcr.io/bayway/janusmcp:latest`
+
+## Links
+- Website: https://janusmcp.dev
+- Source code (MIT): https://github.com/bayway/janusmcp
+- Official MCP Registry name: io.github.Bayway/janusmcp
+- Privacy policy: https://janusmcp.dev/privacy
