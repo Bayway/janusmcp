@@ -37,15 +37,49 @@ type remoteAuthState struct {
 type remoteOAuthHandler struct {
 	clientName string // client_name for DCR (some servers allowlist it, e.g. Figma)
 	resource   string // the remote MCP endpoint (the OAuth "resource")
-	secrets    oauth.Secrets
-	key        string // vault key, e.g. remote_oauth_<account-id>
+	// Pre-registered client for servers WITHOUT dynamic client registration
+	// (e.g. Google Workspace). When clientID is set, the handler skips DCR.
+	clientID     string
+	clientSecret string
+	scopes       []string
+	secrets      oauth.Secrets
+	key          string // vault key, e.g. remote_oauth_<account-id>
 }
 
 // newOAuthHandler builds the OAuth handler for a remote upstream. The loopback
 // callback port is fixed (JANUS_OAUTH_PORT, default 7334) so the registered
 // redirect URI is stable across restarts and the DCR client can be reused.
-func newOAuthHandler(clientName, resourceURL string, secrets oauth.Secrets, key string) (auth.OAuthHandler, error) {
-	return &remoteOAuthHandler{clientName: clientName, resource: resourceURL, secrets: secrets, key: key}, nil
+//
+// clientID/clientSecret/scopes are optional: set them for servers that do NOT
+// support dynamic client registration and require a pre-registered OAuth client.
+func newOAuthHandler(clientName, resourceURL, clientID, clientSecret string, scopes []string, secrets oauth.Secrets, key string) (auth.OAuthHandler, error) {
+	return &remoteOAuthHandler{
+		clientName:   clientName,
+		resource:     resourceURL,
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		scopes:       scopes,
+		secrets:      secrets,
+		key:          key,
+	}, nil
+}
+
+// seed applies the handler's pre-registered client (if any) to the persisted
+// state: it fills a missing client_id/secret and default scopes without
+// clobbering values already obtained from a previous login. It is a pure helper
+// so the DCR-skipping logic can be unit-tested without touching the network.
+func (h *remoteOAuthHandler) seed(s *remoteAuthState) *remoteAuthState {
+	if s == nil {
+		s = &remoteAuthState{}
+	}
+	if s.ClientID == "" && h.clientID != "" {
+		s.ClientID = h.clientID
+		s.ClientSecret = h.clientSecret
+	}
+	if len(s.Scopes) == 0 && len(h.scopes) > 0 {
+		s.Scopes = append([]string(nil), h.scopes...)
+	}
+	return s
 }
 
 func callbackRedirect() (string, string) {
@@ -100,10 +134,7 @@ func (h *remoteOAuthHandler) TokenSource(ctx context.Context) (oauth2.TokenSourc
 // token is rejected): discover endpoints, dynamically register a client (reused
 // afterwards), then authorization-code + PKCE in the browser, and persist everything.
 func (h *remoteOAuthHandler) Authorize(ctx context.Context, _ *http.Request, _ *http.Response) error {
-	s := h.load()
-	if s == nil {
-		s = &remoteAuthState{}
-	}
+	s := h.seed(h.load())
 
 	port, redirect := callbackRedirect()
 

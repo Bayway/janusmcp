@@ -51,6 +51,31 @@ func TestProfileValidation(t *testing.T) {
 	}
 }
 
+// A remote OAuth account may carry a pre-registered client (clientId/secret) and
+// explicit scopes for servers without dynamic client registration (e.g. Google).
+func TestParsePreregisteredOAuthClient(t *testing.T) {
+	p := writeTempConfig(t, `{"accounts":[{
+		"id":"gmail_a","service":"gmail","transport":"http",
+		"url":"https://gmailmcp.googleapis.com/mcp/v1","auth":"oauth",
+		"oauthClientId":"cid","oauthClientSecret":"vault:google_secret",
+		"scopes":["openid","https://www.googleapis.com/auth/gmail.readonly"]
+	}]}`)
+	cfg, err := LoadRaw(p)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	a := cfg.Accounts[0]
+	if a.OAuthClientID != "cid" {
+		t.Fatalf("oauthClientId = %q", a.OAuthClientID)
+	}
+	if a.OAuthClientSecret != "vault:google_secret" {
+		t.Fatalf("oauthClientSecret = %q", a.OAuthClientSecret)
+	}
+	if len(a.Scopes) != 2 || a.Scopes[0] != "openid" {
+		t.Fatalf("scopes = %v", a.Scopes)
+	}
+}
+
 // LoadRawOrEmpty returns an empty config (no accounts) when the file is missing,
 // so `serve` can boot with only the control tools.
 func TestLoadRawOrEmptyMissingFile(t *testing.T) {
