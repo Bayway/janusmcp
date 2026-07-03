@@ -42,6 +42,17 @@ type Account struct {
 	// ("JanusMCP"). Setting an approved client's name is a workaround that may
 	// violate that provider's terms — use at your own discretion.
 	ClientName string `json:"clientName,omitempty"`
+
+	// OAuthClientID / OAuthClientSecret provide a PRE-REGISTERED OAuth client for a
+	// remote (Auth:"oauth") upstream that does NOT support dynamic client
+	// registration — e.g. the Google Workspace MCP servers, which require an OAuth
+	// client created in the Google Cloud Console. When set, the broker skips DCR and
+	// uses these credentials directly. Both accept "vault:<name>" and "${ENV}" refs;
+	// the secret should normally be kept in the vault. Scopes lists the OAuth scopes
+	// to request (also useful when the server's metadata advertises none).
+	OAuthClientID     string   `json:"oauthClientId,omitempty"`
+	OAuthClientSecret string   `json:"oauthClientSecret,omitempty"`
+	Scopes            []string `json:"scopes,omitempty"`
 }
 
 // IsHTTP reports whether the account is a remote (Streamable HTTP) upstream.

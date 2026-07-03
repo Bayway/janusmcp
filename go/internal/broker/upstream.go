@@ -128,7 +128,15 @@ func (m *UpstreamManager) transportFor(a *config.Account) (mcp.Transport, error)
 			if clientName == "" {
 				clientName = "JanusMCP"
 			}
-			h, err := newOAuthHandler(clientName, url, m.secrets, "remote_oauth_"+a.ID)
+			clientID, err := m.resolve(a.OAuthClientID)
+			if err != nil {
+				return nil, fmt.Errorf("resolve oauth client id for %s: %w", a.ID, err)
+			}
+			clientSecret, err := m.resolve(a.OAuthClientSecret)
+			if err != nil {
+				return nil, fmt.Errorf("resolve oauth client secret for %s: %w", a.ID, err)
+			}
+			h, err := newOAuthHandler(clientName, url, clientID, clientSecret, a.Scopes, m.secrets, "remote_oauth_"+a.ID)
 			if err != nil {
 				return nil, err
 			}
