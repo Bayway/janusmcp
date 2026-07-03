@@ -48,6 +48,39 @@ func httpOAuth(name, label, url, desc string) Template {
 	}
 }
 
+// googleWorkspace builds a template for a Google Workspace remote MCP server
+// (Gmail, Drive, Calendar, …). These servers do NOT support dynamic client
+// registration: they require an OAuth client you create in the Google Cloud
+// Console, so the template seeds oauthClientId/oauthClientSecret (from env by
+// default) plus the scopes to request.
+func googleWorkspace(name, label, url, desc string, scopes []string) Template {
+	return Template{
+		Name:        name,
+		Description: desc,
+		Build: func(id string) config.Account {
+			return config.Account{
+				ID: id, Service: name, Label: label,
+				Transport: "http", URL: url, Auth: "oauth",
+				OAuthClientID:     "${GOOGLE_OAUTH_CLIENT_ID}",
+				OAuthClientSecret: "${GOOGLE_OAUTH_CLIENT_SECRET}",
+				Scopes:            scopes,
+			}
+		},
+		Notes: func(id string) []string {
+			return []string{
+				"Google non supporta la registrazione dinamica del client: serve un TUO client OAuth.",
+				"1) Google Cloud Console: abilita le MCP API del progetto (es. gmailmcp.googleapis.com).",
+				"2) Configura la schermata di consenso OAuth e crea un client OAuth di tipo 'Desktop'.",
+				"3) Esporta le credenziali come GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET",
+				"   (oppure metti il secret nel vault e usa \"vault:<nome>\" in oauthClientSecret).",
+				"Al primo uso si apre il browser per il login a " + label + "; il token va nel vault.",
+				"Per un secondo account: janusmcp add " + name + " <altro-id> (login con l'altro account).",
+				"Vedi docs/google-workspace.md per il setup completo.",
+			}
+		},
+	}
+}
+
 // Templates returns built-in templates merged with any user-defined ones.
 func Templates() map[string]Template {
 	m := map[string]Template{
@@ -59,6 +92,29 @@ func Templates() map[string]Template {
 		"stripe":   httpOAuth("stripe", "Stripe", "https://mcp.stripe.com", "Stripe remote MCP — browser login (e.g. two accounts)."),
 		"hubspot":  httpOAuth("hubspot", "HubSpot", "https://mcp.hubspot.com/anthropic", "HubSpot remote MCP — browser login."),
 		"paypal":   httpOAuth("paypal", "PayPal", "https://mcp.paypal.com/mcp", "PayPal remote MCP — browser login."),
+
+		// Google Workspace remote MCP servers — bring-your-own OAuth client (no DCR).
+		"gmail":           googleWorkspace("gmail", "Gmail", "https://gmailmcp.googleapis.com/mcp/v1", "Gmail remote MCP — bring-your-own Google OAuth client (multi-account).", []string{"openid", "email", "https://www.googleapis.com/auth/gmail.readonly"}),
+		"google-drive":    googleWorkspace("google-drive", "Google Drive", "https://drivemcp.googleapis.com/mcp/v1", "Google Drive remote MCP — bring-your-own Google OAuth client.", []string{"openid", "email", "https://www.googleapis.com/auth/drive.readonly"}),
+		"google-calendar": googleWorkspace("google-calendar", "Google Calendar", "https://calendarmcp.googleapis.com/mcp/v1", "Google Calendar remote MCP — bring-your-own Google OAuth client.", []string{"openid", "email", "https://www.googleapis.com/auth/calendar.readonly"}),
+		"google-chat":     googleWorkspace("google-chat", "Google Chat", "https://chatmcp.googleapis.com/mcp/v1", "Google Chat remote MCP — bring-your-own Google OAuth client.", []string{"openid", "email", "https://www.googleapis.com/auth/chat.spaces.readonly", "https://www.googleapis.com/auth/chat.messages.readonly"}),
+
+		// ActiveCampaign remote MCP — browser login (OAuth), one URL per account.
+		"activecampaign": {
+			Name:        "activecampaign",
+			Description: "ActiveCampaign remote MCP — browser login; each account has its own Remote MCP URL.",
+			Build: func(id string) config.Account {
+				return config.Account{ID: id, Service: "activecampaign", Label: "ActiveCampaign", Transport: "http", URL: "REPLACE_ACTIVECAMPAIGN_MCP_URL", Auth: "oauth"}
+			},
+			Notes: func(id string) []string {
+				return []string{
+					"1) In ActiveCampaign: Settings (icona ingranaggio) → Developer → copia la tua 'Remote MCP URL'.",
+					"2) Sostituisci REPLACE_ACTIVECAMPAIGN_MCP_URL con quella URL in config.json (è unica per account).",
+					"Al primo uso si apre il browser per il login; il token va nel vault.",
+					"Per un secondo account: janusmcp add activecampaign <altro-id> con l'URL dell'altro account.",
+				}
+			},
+		},
 
 		// Figma Dev Mode MCP server running locally in the desktop app — the
 		// recommended, legitimate path (no OAuth allowlist, no 403).
