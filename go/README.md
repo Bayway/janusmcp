@@ -137,8 +137,11 @@ Invece di scrivere il config a mano, scaffolda un account da un template:
 
 `add` crea/aggiorna `config.json` e stampa i passi rimanenti (es. project ref, `vault set`).
 Template inclusi (`janusmcp catalog`): server remoti con login via browser —
-`supabase`, `github`, `figma`, `notion`, `sentry`, `stripe`, `hubspot`, `paypal` — più i
-generici `http-oauth` (qualsiasi MCP remoto OAuth), `supabase-pat` (locale) e `stdio` (locale).
+`supabase`, `github`, `figma`, `notion`, `sentry`, `stripe`, `hubspot`, `paypal`,
+`activecampaign` (URL unica per account) — i template Google Workspace `gmail`,
+`google-drive`, `google-calendar`, `google-chat` (client OAuth tuo, vedi
+[`docs/google-workspace.md`](docs/google-workspace.md)) — più i generici `http-oauth`
+(qualsiasi MCP remoto OAuth), `supabase-pat` (locale) e `stdio` (locale).
 
 **Template personalizzati:** crea `~/.config/janusmcp/templates.json` (o `$JANUS_TEMPLATES`)
 per aggiungerne di tuoi; vengono uniti ai built-in:
