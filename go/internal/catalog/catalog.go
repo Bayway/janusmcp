@@ -119,13 +119,21 @@ func Templates() map[string]Template {
 		"neon":      httpOAuth("neon", "Neon", "https://mcp.neon.tech/mcp", "Neon (serverless Postgres) remote MCP — browser login (e.g. two accounts)."),
 		"netlify":   httpOAuth("netlify", "Netlify", "https://netlify-mcp.netlify.app/mcp", "Netlify remote MCP — browser login (e.g. two accounts)."),
 
+		// Cloudflare product MCP servers — Streamable HTTP (/mcp), browser login.
+		"cloudflare-bindings":      httpOAuth("cloudflare-bindings", "Cloudflare Bindings", "https://bindings.mcp.cloudflare.com/mcp", "Cloudflare Workers Bindings remote MCP — browser login (e.g. two accounts)."),
+		"cloudflare-observability": httpOAuth("cloudflare-observability", "Cloudflare Observability", "https://observability.mcp.cloudflare.com/mcp", "Cloudflare Observability remote MCP — browser login."),
+		"cloudflare-radar":         httpOAuth("cloudflare-radar", "Cloudflare Radar", "https://radar.mcp.cloudflare.com/mcp", "Cloudflare Radar (Internet insights) remote MCP — browser login."),
+		"cloudflare-builds":        httpOAuth("cloudflare-builds", "Cloudflare Builds", "https://builds.mcp.cloudflare.com/mcp", "Cloudflare Workers Builds remote MCP — browser login."),
+		"cloudflare-browser":       httpOAuth("cloudflare-browser", "Cloudflare Browser", "https://browser.mcp.cloudflare.com/mcp", "Cloudflare Browser Rendering remote MCP — browser login."),
+
 		// Remote servers over the legacy SSE transport (browser login).
-		"asana":    sseOAuth("asana", "Asana", "https://mcp.asana.com/sse", "Asana remote MCP (SSE) — browser login (e.g. two workspaces)."),
-		"monday":   sseOAuth("monday", "monday.com", "https://mcp.monday.com/sse", "monday.com remote MCP (SSE) — browser login (e.g. two accounts)."),
-		"intercom": sseOAuth("intercom", "Intercom", "https://mcp.intercom.com/sse", "Intercom remote MCP (SSE) — browser login (e.g. two workspaces)."),
-		"webflow":  sseOAuth("webflow", "Webflow", "https://mcp.webflow.com/sse", "Webflow remote MCP (SSE) — browser login (e.g. two accounts)."),
-		"wix":      sseOAuth("wix", "Wix", "https://mcp.wix.com/sse", "Wix remote MCP (SSE) — browser login (e.g. two accounts)."),
-		"square":   sseOAuth("square", "Square", "https://mcp.squareup.com/sse", "Square remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"globalping": sseOAuth("globalping", "Globalping", "https://mcp.globalping.dev/sse", "Globalping (network measurements) remote MCP (SSE) — browser login."),
+		"asana":      sseOAuth("asana", "Asana", "https://mcp.asana.com/sse", "Asana remote MCP (SSE) — browser login (e.g. two workspaces)."),
+		"monday":     sseOAuth("monday", "monday.com", "https://mcp.monday.com/sse", "monday.com remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"intercom":   sseOAuth("intercom", "Intercom", "https://mcp.intercom.com/sse", "Intercom remote MCP (SSE) — browser login (e.g. two workspaces)."),
+		"webflow":    sseOAuth("webflow", "Webflow", "https://mcp.webflow.com/sse", "Webflow remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"wix":        sseOAuth("wix", "Wix", "https://mcp.wix.com/sse", "Wix remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"square":     sseOAuth("square", "Square", "https://mcp.squareup.com/sse", "Square remote MCP (SSE) — browser login (e.g. two accounts)."),
 
 		// Google Workspace remote MCP servers — bring-your-own OAuth client (no DCR).
 		"gmail":           googleWorkspace("gmail", "Gmail", "https://gmailmcp.googleapis.com/mcp/v1", "Gmail remote MCP — bring-your-own Google OAuth client (multi-account).", []string{"openid", "email", "https://www.googleapis.com/auth/gmail.readonly"}),
