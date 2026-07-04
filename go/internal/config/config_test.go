@@ -76,6 +76,25 @@ func TestParsePreregisteredOAuthClient(t *testing.T) {
 	}
 }
 
+// An SSE account is a remote upstream: it requires a URL (not a command) and is
+// reported as remote.
+func TestSSEAccountValidation(t *testing.T) {
+	good := writeTempConfig(t, `{"accounts":[{"id":"a","service":"asana","transport":"sse","url":"https://mcp.asana.com/sse","auth":"oauth"}]}`)
+	cfg, err := LoadRaw(good)
+	if err != nil {
+		t.Fatalf("valid sse account rejected: %v", err)
+	}
+	a := cfg.Accounts[0]
+	if !a.IsSSE() || !a.IsRemote() || a.IsHTTP() {
+		t.Fatalf("sse classification wrong: sse=%v remote=%v http=%v", a.IsSSE(), a.IsRemote(), a.IsHTTP())
+	}
+
+	bad := writeTempConfig(t, `{"accounts":[{"id":"a","service":"asana","transport":"sse"}]}`)
+	if _, err := LoadRaw(bad); err == nil {
+		t.Fatalf("expected error for sse account missing url")
+	}
+}
+
 // LoadRawOrEmpty returns an empty config (no accounts) when the file is missing,
 // so `serve` can boot with only the control tools.
 func TestLoadRawOrEmptyMissingFile(t *testing.T) {

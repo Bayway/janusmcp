@@ -92,7 +92,7 @@ func (s *server) handleAccounts(w http.ResponseWriter, r *http.Request) {
 			v.Transport = "stdio"
 		}
 		switch {
-		case a.IsHTTP() && a.Auth == "oauth":
+		case a.IsRemote() && a.Auth == "oauth":
 			if !s.vaultHas("remote_oauth_" + a.ID) {
 				v.Status = "needs-login"
 			}

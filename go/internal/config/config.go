@@ -29,8 +29,9 @@ type Account struct {
 	Args    []string          `json:"args,omitempty"`
 	Env     map[string]string `json:"env,omitempty"`
 
-	// remote upstream: set Transport:"http" and URL to a Streamable HTTP MCP endpoint.
-	Transport string `json:"transport,omitempty"` // "stdio" (default) | "http"
+	// remote upstream: set Transport:"http" (Streamable HTTP) or "sse" (legacy
+	// Server-Sent Events) and URL to the remote MCP endpoint.
+	Transport string `json:"transport,omitempty"` // "stdio" (default) | "http" | "sse"
 	URL       string `json:"url,omitempty"`
 	// Auth:"oauth" makes the broker perform the MCP-native OAuth flow (with dynamic
 	// client registration) against the remote server, opening a browser on first use.
@@ -55,8 +56,15 @@ type Account struct {
 	Scopes            []string `json:"scopes,omitempty"`
 }
 
-// IsHTTP reports whether the account is a remote (Streamable HTTP) upstream.
+// IsHTTP reports whether the account is a remote Streamable HTTP upstream.
 func (a Account) IsHTTP() bool { return a.Transport == "http" }
+
+// IsSSE reports whether the account is a remote Server-Sent Events upstream.
+func (a Account) IsSSE() bool { return a.Transport == "sse" }
+
+// IsRemote reports whether the account is any remote (URL-based) upstream, as
+// opposed to a local stdio process.
+func (a Account) IsRemote() bool { return a.IsHTTP() || a.IsSSE() }
 
 type Config struct {
 	DefaultAccount string                    `json:"defaultAccount,omitempty"`
@@ -127,9 +135,9 @@ func parse(path string) (*Config, error) {
 		if a.ID == "" {
 			return nil, fmt.Errorf("config: account missing id: %+v", a)
 		}
-		if a.IsHTTP() {
+		if a.IsRemote() {
 			if a.URL == "" {
-				return nil, fmt.Errorf("config: http account %s missing url", a.ID)
+				return nil, fmt.Errorf("config: %s account %s missing url", a.Transport, a.ID)
 			}
 		} else if a.Command == "" {
 			return nil, fmt.Errorf("config: stdio account %s missing command", a.ID)

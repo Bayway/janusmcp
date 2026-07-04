@@ -286,7 +286,7 @@ Alpha — the core is implemented and tested in Go.
 - [x] `with_account` one-shot cross-account calls
 - [x] CLI / code-execution mode (`janusmcp tools` / `schema` / `call`) — invoke tools on
       demand instead of loading all definitions, to cut token usage
-- [ ] SSE upstream transport (in addition to Streamable HTTP + stdio) for SSE-only servers
+- [x] SSE upstream transport (in addition to Streamable HTTP + stdio) for SSE-only servers
 - [ ] Signed, per-OS release binaries & registry auto-publish in CI
 
 See [`design-broker-mcp-multi-account.md`](design-broker-mcp-multi-account.md) for the full design.
