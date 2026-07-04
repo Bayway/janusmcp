@@ -48,6 +48,26 @@ func httpOAuth(name, label, url, desc string) Template {
 	}
 }
 
+// sseOAuth builds a template for a remote MCP server that speaks the legacy SSE
+// transport with browser-based OAuth (dynamic client registration). Same as
+// httpOAuth but Transport:"sse".
+func sseOAuth(name, label, url, desc string) Template {
+	return Template{
+		Name:        name,
+		Description: desc,
+		Build: func(id string) config.Account {
+			return config.Account{ID: id, Service: name, Label: label, Transport: "sse", URL: url, Auth: "oauth"}
+		},
+		Notes: func(id string) []string {
+			return []string{
+				"Al primo uso si apre il browser per il login a " + label + ".",
+				"Per un secondo account: janusmcp add " + name + " <altro-id> (login con l'altro account).",
+				"Transport SSE (legacy): alcuni provider stanno migrando a Streamable HTTP (/mcp).",
+			}
+		},
+	}
+}
+
 // googleWorkspace builds a template for a Google Workspace remote MCP server
 // (Gmail, Drive, Calendar, …). These servers do NOT support dynamic client
 // registration: they require an OAuth client you create in the Google Cloud
@@ -98,6 +118,14 @@ func Templates() map[string]Template {
 		"canva":     httpOAuth("canva", "Canva", "https://mcp.canva.com/mcp", "Canva remote MCP — browser login (e.g. two brand accounts)."),
 		"neon":      httpOAuth("neon", "Neon", "https://mcp.neon.tech/mcp", "Neon (serverless Postgres) remote MCP — browser login (e.g. two accounts)."),
 		"netlify":   httpOAuth("netlify", "Netlify", "https://netlify-mcp.netlify.app/mcp", "Netlify remote MCP — browser login (e.g. two accounts)."),
+
+		// Remote servers over the legacy SSE transport (browser login).
+		"asana":    sseOAuth("asana", "Asana", "https://mcp.asana.com/sse", "Asana remote MCP (SSE) — browser login (e.g. two workspaces)."),
+		"monday":   sseOAuth("monday", "monday.com", "https://mcp.monday.com/sse", "monday.com remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"intercom": sseOAuth("intercom", "Intercom", "https://mcp.intercom.com/sse", "Intercom remote MCP (SSE) — browser login (e.g. two workspaces)."),
+		"webflow":  sseOAuth("webflow", "Webflow", "https://mcp.webflow.com/sse", "Webflow remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"wix":      sseOAuth("wix", "Wix", "https://mcp.wix.com/sse", "Wix remote MCP (SSE) — browser login (e.g. two accounts)."),
+		"square":   sseOAuth("square", "Square", "https://mcp.squareup.com/sse", "Square remote MCP (SSE) — browser login (e.g. two accounts)."),
 
 		// Google Workspace remote MCP servers — bring-your-own OAuth client (no DCR).
 		"gmail":           googleWorkspace("gmail", "Gmail", "https://gmailmcp.googleapis.com/mcp/v1", "Gmail remote MCP — bring-your-own Google OAuth client (multi-account).", []string{"openid", "email", "https://www.googleapis.com/auth/gmail.readonly"}),
@@ -190,6 +218,20 @@ func Templates() map[string]Template {
 				return []string{
 					"Sostituisci REPLACE_MCP_URL con l'endpoint MCP remoto (es. https://.../mcp).",
 					"Al primo uso si aprirà il browser per autorizzare; il token va nel vault.",
+				}
+			},
+		},
+		"sse-oauth": {
+			Name:        "sse-oauth",
+			Description: "Any remote MCP server on the legacy SSE transport with native OAuth (browser login).",
+			Build: func(id string) config.Account {
+				return config.Account{ID: id, Service: id, Label: id, Transport: "sse", URL: "REPLACE_MCP_SSE_URL", Auth: "oauth"}
+			},
+			Notes: func(id string) []string {
+				return []string{
+					"Sostituisci REPLACE_MCP_SSE_URL con l'endpoint SSE remoto (es. https://.../sse).",
+					"Al primo uso si aprirà il browser per autorizzare; il token va nel vault.",
+					"Se il provider offre anche un endpoint Streamable HTTP (/mcp), preferisci il template 'http-oauth'.",
 				}
 			},
 		},
