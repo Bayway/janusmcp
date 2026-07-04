@@ -52,6 +52,31 @@ func TestRemoteOAuthTemplates(t *testing.T) {
 	}
 }
 
+func TestSSETemplates(t *testing.T) {
+	want := map[string]string{
+		"asana":    "https://mcp.asana.com/sse",
+		"monday":   "https://mcp.monday.com/sse",
+		"intercom": "https://mcp.intercom.com/sse",
+		"webflow":  "https://mcp.webflow.com/sse",
+		"wix":      "https://mcp.wix.com/sse",
+		"square":   "https://mcp.squareup.com/sse",
+	}
+	tmpls := Templates()
+	for name, url := range want {
+		tmpl, ok := tmpls[name]
+		if !ok {
+			t.Fatalf("%s template missing", name)
+		}
+		a := tmpl.Build(name + "_a")
+		if a.Transport != "sse" || a.Auth != "oauth" {
+			t.Fatalf("%s: unexpected transport/auth: %+v", name, a)
+		}
+		if a.URL != url {
+			t.Fatalf("%s: url = %q, want %q", name, a.URL, url)
+		}
+	}
+}
+
 func TestZapierTemplate(t *testing.T) {
 	tmpl, ok := Templates()["zapier"]
 	if !ok {
