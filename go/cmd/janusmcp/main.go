@@ -321,7 +321,7 @@ func runStatus() error {
 			transport = "stdio"
 		}
 		status, detail := "ready", ""
-		if a.IsHTTP() && a.Auth == "oauth" {
+		if a.IsRemote() && a.Auth == "oauth" {
 			if has("remote_oauth_" + a.ID) {
 				status = "logged-in ✓"
 			} else {

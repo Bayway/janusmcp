@@ -67,7 +67,7 @@ func (m *UpstreamManager) Session(ctx context.Context, id string) (*mcp.ClientSe
 		return nil, err
 	}
 
-	transport, err := m.transportFor(a)
+	transport, err := m.transportFor(ctx, a)
 	if err != nil {
 		return nil, err
 	}
@@ -115,14 +115,16 @@ func (m *UpstreamManager) CloseAll() {
 }
 
 // transportFor builds the right MCP transport for an account: a local process
-// (stdio) or a remote Streamable HTTP endpoint, with MCP-native OAuth when requested.
-func (m *UpstreamManager) transportFor(a *config.Account) (mcp.Transport, error) {
-	if a.IsHTTP() {
+// (stdio) or a remote endpoint over Streamable HTTP or SSE, with MCP OAuth when
+// requested.
+func (m *UpstreamManager) transportFor(ctx context.Context, a *config.Account) (mcp.Transport, error) {
+	if a.IsRemote() {
 		url, err := m.resolve(a.URL)
 		if err != nil {
 			return nil, fmt.Errorf("resolve url for %s: %w", a.ID, err)
 		}
-		t := &mcp.StreamableClientTransport{Endpoint: url}
+
+		var handler *remoteOAuthHandler
 		if a.Auth == "oauth" {
 			clientName := a.ClientName
 			if clientName == "" {
@@ -136,11 +138,29 @@ func (m *UpstreamManager) transportFor(a *config.Account) (mcp.Transport, error)
 			if err != nil {
 				return nil, fmt.Errorf("resolve oauth client secret for %s: %w", a.ID, err)
 			}
-			h, err := newOAuthHandler(clientName, url, clientID, clientSecret, a.Scopes, m.secrets, "remote_oauth_"+a.ID)
-			if err != nil {
+			if handler, err = newOAuthHandler(clientName, url, clientID, clientSecret, a.Scopes, m.secrets, "remote_oauth_"+a.ID); err != nil {
 				return nil, err
 			}
-			t.OAuthHandler = h
+		}
+
+		// SSE upstream: the SDK's SSE transport has no OAuthHandler, so OAuth is
+		// injected via an authenticating HTTP client (interactive login on first use).
+		if a.IsSSE() {
+			t := &mcp.SSEClientTransport{Endpoint: url}
+			if handler != nil {
+				hc, err := handler.httpClient(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("oauth for %s: %w", a.ID, err)
+				}
+				t.HTTPClient = hc
+			}
+			return t, nil
+		}
+
+		// Streamable HTTP upstream: use the SDK's native OAuth handler (auto-login on 401).
+		t := &mcp.StreamableClientTransport{Endpoint: url}
+		if handler != nil {
+			t.OAuthHandler = handler
 		}
 		return t, nil
 	}

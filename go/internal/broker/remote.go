@@ -52,7 +52,7 @@ type remoteOAuthHandler struct {
 //
 // clientID/clientSecret/scopes are optional: set them for servers that do NOT
 // support dynamic client registration and require a pre-registered OAuth client.
-func newOAuthHandler(clientName, resourceURL, clientID, clientSecret string, scopes []string, secrets oauth.Secrets, key string) (auth.OAuthHandler, error) {
+func newOAuthHandler(clientName, resourceURL, clientID, clientSecret string, scopes []string, secrets oauth.Secrets, key string) (*remoteOAuthHandler, error) {
 	return &remoteOAuthHandler{
 		clientName:   clientName,
 		resource:     resourceURL,
@@ -128,6 +128,30 @@ func (h *remoteOAuthHandler) TokenSource(ctx context.Context) (oauth2.TokenSourc
 	}
 	base := h.oauthConfig(s, "").TokenSource(ctx, s.Token)
 	return &persistingTokenSource{src: base, h: h, st: s}, nil
+}
+
+// httpClient returns an *http.Client that injects a valid OAuth bearer token on
+// every request. The SDK's SSE transport (unlike the Streamable HTTP one) has no
+// OAuthHandler hook, so we authenticate SSE upstreams through the client instead:
+// if no token is persisted yet, run the interactive browser login first, then
+// wrap a refreshing token source in an oauth2.Transport.
+func (h *remoteOAuthHandler) httpClient(ctx context.Context) (*http.Client, error) {
+	ts, err := h.TokenSource(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if ts == nil {
+		if err := h.Authorize(ctx, nil, nil); err != nil {
+			return nil, err
+		}
+		if ts, err = h.TokenSource(ctx); err != nil {
+			return nil, err
+		}
+		if ts == nil {
+			return nil, fmt.Errorf("oauth: no token after authorize for %s", h.resource)
+		}
+	}
+	return &http.Client{Transport: &oauth2.Transport{Source: ts, Base: http.DefaultTransport}}, nil
 }
 
 // Authorize runs the full interactive flow on the first login (or after the refresh

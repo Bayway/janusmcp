@@ -1,6 +1,39 @@
 package broker
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/bayway/janusmcp/internal/config"
+)
+
+// transportFor must pick the SDK's SSE transport for a transport:"sse" account,
+// and the Streamable HTTP transport for transport:"http".
+func TestTransportForSelectsRemoteKind(t *testing.T) {
+	cfg := &config.Config{Accounts: []config.Account{
+		{ID: "sse_a", Service: "s", Transport: "sse", URL: "https://example.com/sse"},
+		{ID: "http_a", Service: "s", Transport: "http", URL: "https://example.com/mcp"},
+	}}
+	m := NewUpstreamManager(cfg, ".", nil, nil)
+
+	tr, err := m.transportFor(context.Background(), &cfg.Accounts[0])
+	if err != nil {
+		t.Fatalf("sse transportFor: %v", err)
+	}
+	if _, ok := tr.(*mcp.SSEClientTransport); !ok {
+		t.Fatalf("expected *mcp.SSEClientTransport, got %T", tr)
+	}
+
+	tr, err = m.transportFor(context.Background(), &cfg.Accounts[1])
+	if err != nil {
+		t.Fatalf("http transportFor: %v", err)
+	}
+	if _, ok := tr.(*mcp.StreamableClientTransport); !ok {
+		t.Fatalf("expected *mcp.StreamableClientTransport, got %T", tr)
+	}
+}
 
 // A pre-registered client (e.g. Google Workspace, which has no dynamic client
 // registration) must be seeded into fresh state so Authorize skips DCR.
