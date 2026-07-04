@@ -22,6 +22,36 @@ func TestGoogleWorkspaceTemplate(t *testing.T) {
 	}
 }
 
+func TestRemoteOAuthTemplates(t *testing.T) {
+	// Commonly-used remote servers added as browser-login (DCR) accounts.
+	want := map[string]string{
+		"linear":    "https://mcp.linear.app/mcp",
+		"atlassian": "https://mcp.atlassian.com/v1/mcp/authv2",
+		"vercel":    "https://mcp.vercel.com",
+		"canva":     "https://mcp.canva.com/mcp",
+		"neon":      "https://mcp.neon.tech/mcp",
+		"netlify":   "https://netlify-mcp.netlify.app/mcp",
+	}
+	tmpls := Templates()
+	for name, url := range want {
+		tmpl, ok := tmpls[name]
+		if !ok {
+			t.Fatalf("%s template missing", name)
+		}
+		a := tmpl.Build(name + "_a")
+		if a.Transport != "http" || a.Auth != "oauth" {
+			t.Fatalf("%s: unexpected transport/auth: %+v", name, a)
+		}
+		if a.URL != url {
+			t.Fatalf("%s: url = %q, want %q", name, a.URL, url)
+		}
+		// DCR servers must NOT carry a pre-registered client.
+		if a.OAuthClientID != "" || a.OAuthClientSecret != "" {
+			t.Fatalf("%s should use dynamic client registration: %+v", name, a)
+		}
+	}
+}
+
 func TestActiveCampaignTemplate(t *testing.T) {
 	tmpl, ok := Templates()["activecampaign"]
 	if !ok {
