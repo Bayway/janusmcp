@@ -25,12 +25,17 @@ func TestGoogleWorkspaceTemplate(t *testing.T) {
 func TestRemoteOAuthTemplates(t *testing.T) {
 	// Commonly-used remote servers added as browser-login (DCR) accounts.
 	want := map[string]string{
-		"linear":    "https://mcp.linear.app/mcp",
-		"atlassian": "https://mcp.atlassian.com/v1/mcp/authv2",
-		"vercel":    "https://mcp.vercel.com",
-		"canva":     "https://mcp.canva.com/mcp",
-		"neon":      "https://mcp.neon.tech/mcp",
-		"netlify":   "https://netlify-mcp.netlify.app/mcp",
+		"linear":                   "https://mcp.linear.app/mcp",
+		"atlassian":                "https://mcp.atlassian.com/v1/mcp/authv2",
+		"vercel":                   "https://mcp.vercel.com",
+		"canva":                    "https://mcp.canva.com/mcp",
+		"neon":                     "https://mcp.neon.tech/mcp",
+		"netlify":                  "https://netlify-mcp.netlify.app/mcp",
+		"cloudflare-bindings":      "https://bindings.mcp.cloudflare.com/mcp",
+		"cloudflare-observability": "https://observability.mcp.cloudflare.com/mcp",
+		"cloudflare-radar":         "https://radar.mcp.cloudflare.com/mcp",
+		"cloudflare-builds":        "https://builds.mcp.cloudflare.com/mcp",
+		"cloudflare-browser":       "https://browser.mcp.cloudflare.com/mcp",
 	}
 	tmpls := Templates()
 	for name, url := range want {
@@ -54,12 +59,13 @@ func TestRemoteOAuthTemplates(t *testing.T) {
 
 func TestSSETemplates(t *testing.T) {
 	want := map[string]string{
-		"asana":    "https://mcp.asana.com/sse",
-		"monday":   "https://mcp.monday.com/sse",
-		"intercom": "https://mcp.intercom.com/sse",
-		"webflow":  "https://mcp.webflow.com/sse",
-		"wix":      "https://mcp.wix.com/sse",
-		"square":   "https://mcp.squareup.com/sse",
+		"asana":      "https://mcp.asana.com/sse",
+		"monday":     "https://mcp.monday.com/sse",
+		"intercom":   "https://mcp.intercom.com/sse",
+		"webflow":    "https://mcp.webflow.com/sse",
+		"wix":        "https://mcp.wix.com/sse",
+		"square":     "https://mcp.squareup.com/sse",
+		"globalping": "https://mcp.globalping.dev/sse",
 	}
 	tmpls := Templates()
 	for name, url := range want {

@@ -141,10 +141,12 @@ Template inclusi (`janusmcp catalog`): server remoti con login via browser —
 `linear`, `atlassian`, `vercel`, `canva`, `neon`, `netlify`, `zapier`,
 `activecampaign` (URL unica per account) — i template Google Workspace `gmail`,
 `google-drive`, `google-calendar`, `google-chat` (client OAuth tuo, vedi
-[`docs/google-workspace.md`](docs/google-workspace.md)) — server sul transport SSE
-(legacy) `asana`, `monday`, `intercom`, `webflow`, `wix`, `square` — più i generici
-`http-oauth` (MCP remoto Streamable HTTP + OAuth), `sse-oauth` (MCP remoto SSE + OAuth),
-`supabase-pat` (locale) e `stdio` (locale).
+[`docs/google-workspace.md`](docs/google-workspace.md)) — i server Cloudflare
+`cloudflare-bindings`, `cloudflare-observability`, `cloudflare-radar`,
+`cloudflare-builds`, `cloudflare-browser` (Streamable HTTP) — server sul transport SSE
+(legacy) `asana`, `monday`, `intercom`, `webflow`, `wix`, `square`, `globalping` — più i
+generici `http-oauth` (MCP remoto Streamable HTTP + OAuth), `sse-oauth` (MCP remoto SSE +
+OAuth), `supabase-pat` (locale) e `stdio` (locale).
 
 Il broker parla con gli upstream via **stdio**, **Streamable HTTP** (`transport: "http"`)
 e **SSE** (`transport: "sse"`). Per gli upstream SSE con OAuth il token viene iniettato
