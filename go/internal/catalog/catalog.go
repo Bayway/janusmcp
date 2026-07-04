@@ -105,6 +105,25 @@ func Templates() map[string]Template {
 		"google-calendar": googleWorkspace("google-calendar", "Google Calendar", "https://calendarmcp.googleapis.com/mcp/v1", "Google Calendar remote MCP — bring-your-own Google OAuth client.", []string{"openid", "email", "https://www.googleapis.com/auth/calendar.readonly"}),
 		"google-chat":     googleWorkspace("google-chat", "Google Chat", "https://chatmcp.googleapis.com/mcp/v1", "Google Chat remote MCP — bring-your-own Google OAuth client.", []string{"openid", "email", "https://www.googleapis.com/auth/chat.spaces.readonly", "https://www.googleapis.com/auth/chat.messages.readonly"}),
 
+		// Zapier remote MCP — browser login (OAuth). The server exposes the Zap
+		// actions you enable on mcp.zapier.com; identity comes from the login.
+		"zapier": {
+			Name:        "zapier",
+			Description: "Zapier remote MCP — browser login; exposes the Zap actions you enable on mcp.zapier.com.",
+			Build: func(id string) config.Account {
+				return config.Account{ID: id, Service: "zapier", Label: "Zapier", Transport: "http", URL: "https://mcp.zapier.com/api/v1/connect", Auth: "oauth"}
+			},
+			Notes: func(id string) []string {
+				return []string{
+					"1) Su https://mcp.zapier.com crea un server e scegli quali app/azioni esporre (tab 'Tools').",
+					"2) Al primo uso si apre il browser per il login OAuth (tab 'Connect').",
+					"Per un secondo account: janusmcp add zapier <altro-id> (login con l'altro account Zapier).",
+					"Alternativa senza OAuth: crea un server tipo 'Other', genera un token e imposta come 'url'",
+					"  l'URL completo con il token (dal tab 'Connect'), es. ...?token=${ZAPIER_MCP_TOKEN}.",
+				}
+			},
+		},
+
 		// ActiveCampaign remote MCP — browser login (OAuth), one URL per account.
 		"activecampaign": {
 			Name:        "activecampaign",

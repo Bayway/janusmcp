@@ -52,6 +52,24 @@ func TestRemoteOAuthTemplates(t *testing.T) {
 	}
 }
 
+func TestZapierTemplate(t *testing.T) {
+	tmpl, ok := Templates()["zapier"]
+	if !ok {
+		t.Fatal("zapier template missing")
+	}
+	a := tmpl.Build("zapier_a")
+	if a.Transport != "http" || a.Auth != "oauth" {
+		t.Fatalf("unexpected transport/auth: %+v", a)
+	}
+	if a.URL != "https://mcp.zapier.com/api/v1/connect" {
+		t.Fatalf("url = %q", a.URL)
+	}
+	// OAuth (DCR) login: no pre-registered client.
+	if a.OAuthClientID != "" || a.OAuthClientSecret != "" {
+		t.Fatalf("zapier should use dynamic client registration: %+v", a)
+	}
+}
+
 func TestActiveCampaignTemplate(t *testing.T) {
 	tmpl, ok := Templates()["activecampaign"]
 	if !ok {
