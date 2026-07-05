@@ -9,6 +9,26 @@ import (
 	"github.com/bayway/janusmcp/internal/config"
 )
 
+func TestWellKnownURLs(t *testing.T) {
+	cases := []struct{ issuer, wantOAuth, wantOIDC string }{
+		// Bare host: well-known at the root.
+		{"https://mcp.linear.app", "https://mcp.linear.app/.well-known/oauth-authorization-server", "https://mcp.linear.app/.well-known/openid-configuration"},
+		// Trailing slash (Netlify): must not corrupt the URL, issuer kept verbatim.
+		{"https://netlify-mcp.netlify.app/", "https://netlify-mcp.netlify.app/.well-known/oauth-authorization-server", "https://netlify-mcp.netlify.app/.well-known/openid-configuration"},
+		// Path issuer (RFC 8414): well-known inserted after the host, path preserved.
+		{"https://auth.example.com/tenant", "https://auth.example.com/.well-known/oauth-authorization-server/tenant", "https://auth.example.com/tenant/.well-known/openid-configuration"},
+	}
+	for _, c := range cases {
+		got := wellKnownURLs(c.issuer)
+		if got[0] != c.wantOAuth {
+			t.Errorf("%s: oauth well-known = %q, want %q", c.issuer, got[0], c.wantOAuth)
+		}
+		if got[1] != c.wantOIDC {
+			t.Errorf("%s: oidc well-known = %q, want %q", c.issuer, got[1], c.wantOIDC)
+		}
+	}
+}
+
 // transportFor must pick the SDK's SSE transport for a transport:"sse" account,
 // and the Streamable HTTP transport for transport:"http".
 func TestTransportForSelectsRemoteKind(t *testing.T) {

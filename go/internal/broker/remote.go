@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -230,27 +231,101 @@ func (h *remoteOAuthHandler) discover(ctx context.Context) (*oauthex.AuthServerM
 		origin + "/.well-known/oauth-protected-resource",
 	}
 
-	var prm *oauthex.ProtectedResourceMetadata
+	// Build the list of authorization-server issuers to try. First any advertised
+	// by protected-resource metadata (RFC 9728), then the resource origin itself as
+	// a fallback: some servers (e.g. Intercom) don't publish PRM but expose
+	// authorization-server metadata directly at their origin.
+	var issuers []string
+	addIssuer := func(s string) {
+		s = strings.TrimRight(s, "/")
+		for _, e := range issuers {
+			if e == s {
+				return
+			}
+		}
+		issuers = append(issuers, s)
+	}
 	for _, cand := range prmCandidates {
-		if m, e := oauthex.GetProtectedResourceMetadata(ctx, cand, h.resource, nil); e == nil {
-			prm = m
+		if m, e := oauthex.GetProtectedResourceMetadata(ctx, cand, h.resource, nil); e == nil && m != nil && len(m.AuthorizationServers) > 0 {
+			addIssuer(m.AuthorizationServers[0])
 			break
 		}
 	}
-	if prm == nil || len(prm.AuthorizationServers) == 0 {
-		return nil, fmt.Errorf("could not discover authorization server for %s", h.resource)
-	}
+	addIssuer(origin)
 
-	issuer := strings.TrimRight(prm.AuthorizationServers[0], "/")
-	for _, asURL := range []string{
-		issuer + "/.well-known/oauth-authorization-server",
-		issuer + "/.well-known/openid-configuration",
-	} {
-		if meta, e := oauthex.GetAuthServerMeta(ctx, asURL, issuer, nil); e == nil && meta != nil {
-			return meta, nil
+	for _, issuer := range issuers {
+		for _, asURL := range wellKnownURLs(issuer) {
+			if meta, e := oauthex.GetAuthServerMeta(ctx, asURL, issuer, nil); e == nil && meta != nil {
+				return meta, nil
+			}
 		}
 	}
-	return nil, fmt.Errorf("could not fetch authorization server metadata for %s", issuer)
+
+	// Second pass: some servers advertise an authorization server whose metadata
+	// declares a different, canonical issuer than the URL it was served from
+	// (e.g. Vercel: mcp.vercel.com advertises metadata whose issuer is vercel.com).
+	// Follow that declared issuer and validate strictly there.
+	for _, issuer := range issuers {
+		for _, asURL := range wellKnownURLs(issuer) {
+			declared := fetchDeclaredIssuer(ctx, asURL)
+			if declared == "" || declared == issuer {
+				continue
+			}
+			for _, u2 := range wellKnownURLs(declared) {
+				if meta, e := oauthex.GetAuthServerMeta(ctx, u2, declared, nil); e == nil && meta != nil {
+					return meta, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("could not discover authorization server for %s", h.resource)
+}
+
+// fetchDeclaredIssuer reads just the `issuer` field of an authorization-server
+// metadata document, without the strict same-URL validation, so the caller can
+// follow it to the canonical issuer and validate there.
+func fetchDeclaredIssuer(ctx context.Context, metadataURL string) string {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataURL, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+	var m struct {
+		Issuer string `json:"issuer"`
+	}
+	if json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&m) != nil {
+		return ""
+	}
+	return m.Issuer
+}
+
+// wellKnownURLs returns the metadata URLs to try for an issuer. The OAuth flavor
+// (RFC 8414) inserts the well-known segment between the host and the issuer path
+// (so a tenant path is preserved), while the OpenID Connect flavor appends it. The
+// issuer string is otherwise left intact (including any trailing slash) so it can
+// be validated verbatim against the metadata's `issuer` field.
+func wellKnownURLs(issuer string) []string {
+	iu, err := url.Parse(issuer)
+	if err != nil {
+		return []string{
+			issuer + "/.well-known/oauth-authorization-server",
+			issuer + "/.well-known/openid-configuration",
+		}
+	}
+	origin := iu.Scheme + "://" + iu.Host
+	path := strings.TrimRight(iu.Path, "/") // "" for a bare or trailing-slash issuer
+	return []string{
+		origin + "/.well-known/oauth-authorization-server" + path,
+		strings.TrimRight(issuer, "/") + "/.well-known/openid-configuration",
+	}
 }
 
 func randomState() string {
