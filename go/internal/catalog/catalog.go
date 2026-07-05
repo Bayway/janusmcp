@@ -105,19 +105,18 @@ func googleWorkspace(name, label, url, desc string, scopes []string) Template {
 func Templates() map[string]Template {
 	m := map[string]Template{
 		// Remote servers with native OAuth (browser login, multi-account ready).
-		"supabase":  httpOAuth("supabase", "Supabase", "https://mcp.supabase.com/mcp", "Supabase (hosted) — browser login, multi-account."),
-		"github":    httpOAuth("github", "GitHub", "https://api.githubcopilot.com/mcp/", "GitHub remote MCP — browser login (e.g. two orgs)."),
-		"notion":    httpOAuth("notion", "Notion", "https://mcp.notion.com/mcp", "Notion remote MCP — browser login (e.g. two workspaces)."),
-		"sentry":    httpOAuth("sentry", "Sentry", "https://mcp.sentry.dev/mcp", "Sentry remote MCP — browser login."),
-		"stripe":    httpOAuth("stripe", "Stripe", "https://mcp.stripe.com", "Stripe remote MCP — browser login (e.g. two accounts)."),
-		"hubspot":   httpOAuth("hubspot", "HubSpot", "https://mcp.hubspot.com/anthropic", "HubSpot remote MCP — browser login."),
-		"paypal":    httpOAuth("paypal", "PayPal", "https://mcp.paypal.com/mcp", "PayPal remote MCP — browser login."),
-		"linear":    httpOAuth("linear", "Linear", "https://mcp.linear.app/mcp", "Linear remote MCP — browser login (e.g. two workspaces)."),
-		"atlassian": httpOAuth("atlassian", "Atlassian", "https://mcp.atlassian.com/v1/mcp/authv2", "Atlassian Rovo (Jira/Confluence/Bitbucket) remote MCP — browser login (e.g. two sites)."),
-		"vercel":    httpOAuth("vercel", "Vercel", "https://mcp.vercel.com", "Vercel remote MCP — browser login (e.g. two teams)."),
-		"canva":     httpOAuth("canva", "Canva", "https://mcp.canva.com/mcp", "Canva remote MCP — browser login (e.g. two brand accounts)."),
-		"neon":      httpOAuth("neon", "Neon", "https://mcp.neon.tech/mcp", "Neon (serverless Postgres) remote MCP — browser login (e.g. two accounts)."),
-		"netlify":   httpOAuth("netlify", "Netlify", "https://netlify-mcp.netlify.app/mcp", "Netlify remote MCP — browser login (e.g. two accounts)."),
+		"supabase": httpOAuth("supabase", "Supabase", "https://mcp.supabase.com/mcp", "Supabase (hosted) — browser login, multi-account."),
+		"github":   httpOAuth("github", "GitHub", "https://api.githubcopilot.com/mcp/", "GitHub remote MCP — browser login (e.g. two orgs)."),
+		"notion":   httpOAuth("notion", "Notion", "https://mcp.notion.com/mcp", "Notion remote MCP — browser login (e.g. two workspaces)."),
+		"sentry":   httpOAuth("sentry", "Sentry", "https://mcp.sentry.dev/mcp", "Sentry remote MCP — browser login."),
+		"stripe":   httpOAuth("stripe", "Stripe", "https://mcp.stripe.com", "Stripe remote MCP — browser login (e.g. two accounts)."),
+		"hubspot":  httpOAuth("hubspot", "HubSpot", "https://mcp.hubspot.com/anthropic", "HubSpot remote MCP — browser login."),
+		"paypal":   httpOAuth("paypal", "PayPal", "https://mcp.paypal.com/mcp", "PayPal remote MCP — browser login."),
+		"linear":   httpOAuth("linear", "Linear", "https://mcp.linear.app/mcp", "Linear remote MCP — browser login (e.g. two workspaces)."),
+		"vercel":   httpOAuth("vercel", "Vercel", "https://mcp.vercel.com", "Vercel remote MCP — browser login (e.g. two teams)."),
+		"canva":    httpOAuth("canva", "Canva", "https://mcp.canva.com/mcp", "Canva remote MCP — browser login (e.g. two brand accounts)."),
+		"neon":     httpOAuth("neon", "Neon", "https://mcp.neon.tech/mcp", "Neon (serverless Postgres) remote MCP — browser login (e.g. two accounts)."),
+		"netlify":  httpOAuth("netlify", "Netlify", "https://netlify-mcp.netlify.app/mcp", "Netlify remote MCP — browser login (e.g. two accounts)."),
 
 		// Cloudflare product MCP servers — Streamable HTTP (/mcp), browser login.
 		"cloudflare-bindings":      httpOAuth("cloudflare-bindings", "Cloudflare Bindings", "https://bindings.mcp.cloudflare.com/mcp", "Cloudflare Workers Bindings remote MCP — browser login (e.g. two accounts)."),

@@ -138,7 +138,7 @@ Invece di scrivere il config a mano, scaffolda un account da un template:
 `add` crea/aggiorna `config.json` e stampa i passi rimanenti (es. project ref, `vault set`).
 Template inclusi (`janusmcp catalog`): server remoti con login via browser —
 `supabase`, `github`, `figma`, `notion`, `sentry`, `stripe`, `hubspot`, `paypal`,
-`linear`, `atlassian`, `vercel`, `canva`, `neon`, `netlify`, `zapier`,
+`linear`, `vercel`, `canva`, `neon`, `netlify`, `zapier`,
 `activecampaign` (URL unica per account) — i template Google Workspace `gmail`,
 `google-drive`, `google-calendar`, `google-chat` (client OAuth tuo, vedi
 [`docs/google-workspace.md`](docs/google-workspace.md)) — i server Cloudflare
