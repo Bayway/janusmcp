@@ -216,6 +216,27 @@ servers behind one endpoint. JanusMCP solves the orthogonal, under-served proble
 **many identities for the same service**, without saturating the model's context, from any
 LLM, fully local. It's a credential-aware broker, not a flat aggregator.
 
+## Built-in connectors
+
+Scaffold an account from a ready-made template with `janusmcp add <template>` (run
+`janusmcp catalog` for the full, up-to-date list). Most use browser OAuth (dynamic client
+registration); a few need extra setup, noted below.
+
+- **Remote, browser login (OAuth):** `supabase`, `github`, `notion`, `sentry`, `stripe`,
+  `hubspot`, `paypal`, `linear`, `vercel`, `canva`, `neon`, `netlify`, `zapier`.
+- **SSE transport (legacy):** `asana`, `monday`, `intercom`, `webflow`, `wix`, `square`,
+  `globalping`.
+- **Cloudflare (Streamable HTTP):** `cloudflare-bindings`, `cloudflare-observability`,
+  `cloudflare-radar`, `cloudflare-builds`, `cloudflare-browser`.
+- **Google Workspace (bring-your-own OAuth client):** `gmail`, `google-drive`,
+  `google-calendar`, `google-chat` — see [`go/docs/google-workspace.md`](go/docs/google-workspace.md).
+- **Per-account URL:** `activecampaign` (paste your Remote MCP URL).
+- **Figma:** `figma-desktop` (local, recommended) and `figma` (remote, restricted — see below).
+- **Generic building blocks:** `http-oauth`, `sse-oauth`, `supabase-pat`, `stdio`.
+
+Missing one? Add any remote server with `http-oauth` / `sse-oauth`, any local one with
+`stdio`, or define your own template in `~/.config/janusmcp/templates.json`.
+
 ## Provider notes
 
 ### ActiveCampaign
@@ -287,6 +308,8 @@ Alpha — the core is implemented and tested in Go.
 - [x] CLI / code-execution mode (`janusmcp tools` / `schema` / `call`) — invoke tools on
       demand instead of loading all definitions, to cut token usage
 - [x] SSE upstream transport (in addition to Streamable HTTP + stdio) for SSE-only servers
+- [x] Pre-registered OAuth clients (bring-your-own client for servers without dynamic client registration, e.g. Google Workspace)
+- [x] Built-in connector catalog (25+ services) via `janusmcp catalog` / `add`
 - [ ] Signed, per-OS release binaries & registry auto-publish in CI
 
 See [`design-broker-mcp-multi-account.md`](design-broker-mcp-multi-account.md) for the full design.
