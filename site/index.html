@@ -37,6 +37,8 @@
       "acceptedAnswer": { "@type": "Answer", "text": "MCP gateways aggregate different servers behind one endpoint. JanusMCP solves the orthogonal problem: many identities for the SAME service, without saturating the model's context, fully local. It is a credential-aware broker, not a flat aggregator." } },
     { "@type": "Question", "name": "Which LLM clients does JanusMCP work with?",
       "acceptedAnswer": { "@type": "Answer", "text": "Any MCP client, because it speaks standard MCP over stdio and Streamable HTTP: Claude Desktop and Claude Code, ChatGPT, Gemini, Cursor, and Copilot." } },
+    { "@type": "Question", "name": "Do agents have to use MCP, or can they use the CLI directly?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Both. Besides being an MCP server, JanusMCP has a code-execution mode: agents with shell access (Claude Code, Codex, Cursor…) run janusmcp tools, janusmcp schema and janusmcp call to discover and invoke tools on demand — no tool definitions loaded into context, same keychain credentials, same multi-account switching." } },
     { "@type": "Question", "name": "Where are my credentials stored?",
       "acceptedAnswer": { "@type": "Answer", "text": "In your operating system's keychain (macOS Keychain, Windows Credential Manager, or the Linux Secret Service). Tokens are never written to config files in clear text and never pass through the model's chat context." } },
     { "@type": "Question", "name": "Is JanusMCP free and open source?",
@@ -173,7 +175,7 @@
       <h1>One MCP endpoint,<br><span class="grad">every account.</span></h1>
       <p class="sub">A local broker that lets you add your credentials once and switch identity —
         the same service, many accounts — <b>without reconnecting</b>. Works with Claude, ChatGPT,
-        Gemini, Cursor and any MCP client.</p>
+        Gemini, Cursor and any MCP client — over MCP <b>or straight from the CLI</b>.</p>
       <div class="cta">
         <a class="btn primary" href="#install">Get started</a>
         <a class="btn ghost" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
@@ -217,6 +219,7 @@
       <div class="card"><span class="ico">🔒</span><h3>Secrets stay local</h3><p>Tokens live in your OS keychain, never in config files and never in the chat context.</p></div>
       <div class="card"><span class="ico">🧩</span><h3>Any client</h3><p>Standard MCP over stdio and Streamable HTTP — Claude, ChatGPT, Gemini, Cursor, Copilot.</p></div>
       <div class="card"><span class="ico">🪶</span><h3>Context-safe</h3><p>Only the active account's tools are exposed — not N×tools — so the model stays focused.</p></div>
+      <div class="card"><span class="ico">⌨️</span><h3>MCP <i>and</i> CLI</h3><p>Agents with shell access skip the MCP session: <code class="inl">janusmcp tools</code> / <code class="inl">schema</code> / <code class="inl">call</code> invoke tools on demand — zero definitions in context.</p></div>
     </div>
   </section>
 
@@ -270,6 +273,12 @@
       <h3 style="margin:22px 0 4px;font-size:17px">Which LLM clients does it work with?</h3>
       <p class="lead">Any MCP client — it speaks standard MCP over stdio and Streamable HTTP: Claude
         Desktop and Claude Code, ChatGPT, Gemini, Cursor, and Copilot.</p>
+      <h3 style="margin:22px 0 4px;font-size:17px">Do agents have to use MCP, or can they use the CLI directly?</h3>
+      <p class="lead">Both. Besides being an MCP server, JanusMCP has a code-execution mode: agents
+        with shell access (Claude Code, Codex, Cursor…) run <code class="inl">janusmcp tools</code>,
+        <code class="inl">janusmcp schema &lt;tool&gt;</code> and <code class="inl">janusmcp call &lt;tool&gt;</code>
+        to discover and invoke tools on demand — no tool definitions loaded into context, same
+        keychain credentials, same multi-account switching.</p>
       <h3 style="margin:22px 0 4px;font-size:17px">Where are my credentials stored?</h3>
       <p class="lead">In your OS keychain (macOS Keychain, Windows Credential Manager, or the Linux
         Secret Service). Tokens are never written to config files in clear text and never pass through

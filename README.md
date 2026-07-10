@@ -37,6 +37,10 @@ JanusMCP is a **local broker** that sits between your LLM client and the real MC
 - **Add N accounts once** for the same service and keep them all available.
 - **Switch identity without reconnecting** — no re-login, no fiddling with config.
 - **Works with any LLM client** — it just speaks standard MCP (stdio + Streamable HTTP).
+- **Works without an MCP session too** — agents can drive it **directly from the CLI**
+  ([code-execution mode](#code-execution-mode--tools-from-the-terminal-zero-context-cost)):
+  `janusmcp tools` / `schema` / `call` invoke tools on demand, with zero tool
+  definitions loaded into context.
 - **Runs locally** — your machine, your keychain, your control.
 - **Keeps the context clean** — it exposes only the *active* account's tools, not N×tools.
 
@@ -198,6 +202,13 @@ persisted active account by default, or any account id / profile name; a name th
 collides across a profile's accounts must be disambiguated with `--account`. Secrets
 resolve through the same vault/OAuth stack as `serve` — nothing extra to configure.
 
+This makes JanusMCP a first-class citizen for **CLI-driven agents** (Claude Code,
+Codex, Cursor agents, or any agent with shell access): instead of registering it as
+an MCP server, just tell the agent that `janusmcp tools` / `schema` / `call` exist.
+Discovery, schemas and invocation happen on demand, credentials stay in the keychain,
+and multi-account switching works the same as over MCP. Both modes share the config
+and the persisted active account, so you can mix them freely.
+
 ## Key features
 
 | | |
@@ -208,6 +219,7 @@ resolve through the same vault/OAuth stack as `serve` — nothing extra to confi
 | **Secure vault** | OS keychain (macOS/Windows/Linux) + encrypted-file fallback; secrets as `vault:<name>` |
 | **OAuth loopback** | `janusmcp login` (PKCE), tokens stored in the vault, auto-refresh, `oauth:<name>` |
 | **Context-safe** | only the active account's tools are exposed; switching emits `tools/list_changed` |
+| **MCP *and* CLI** | same broker as an MCP server or via `janusmcp tools` / `schema` / `call` — agents invoke tools on demand, zero definitions in context |
 
 ## How it's different
 
