@@ -114,7 +114,7 @@
   .diagram{margin:24px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;overflow:auto}
   .diagram pre{margin:0;font:13px/1.7 ui-monospace,Menlo,Consolas,monospace;color:#cfd6ee;white-space:pre}
 
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:16px;margin-top:26px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:26px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;transition:border-color .2s,transform .2s}
   .card:hover{border-color:var(--line2);transform:translateY(-2px)}
   .card .ico{font-size:20px;margin-bottom:10px;display:block}
@@ -219,6 +219,7 @@
       <div class="card"><span class="ico">🔒</span><h3>Secrets stay local</h3><p>Tokens live in your OS keychain, never in config files and never in the chat context.</p></div>
       <div class="card"><span class="ico">🧩</span><h3>Any client</h3><p>Standard MCP over stdio and Streamable HTTP — Claude, ChatGPT, Gemini, Cursor, Copilot.</p></div>
       <div class="card"><span class="ico">🪶</span><h3>Context-safe</h3><p>Only the active account's tools are exposed — not N×tools — so the model stays focused.</p></div>
+      <div class="card"><span class="ico">🗂️</span><h3>Profiles</h3><p>Activate a whole client's stack — Supabase + GitHub + Slack of Client A — with one call.</p></div>
       <div class="card"><span class="ico">⌨️</span><h3>MCP <i>and</i> CLI</h3><p>Agents with shell access skip the MCP session: <code class="inl">janusmcp tools</code> / <code class="inl">schema</code> / <code class="inl">call</code> invoke tools on demand — zero definitions in context.</p></div>
     </div>
   </section>
