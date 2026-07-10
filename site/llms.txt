@@ -11,6 +11,7 @@
 - One MCP endpoint, every account. Switch identity with a tool call (`janus_use_account`) — no reconnect, no re-login.
 - Profiles group a client's accounts across services (e.g. Supabase + GitHub of "Client A") and activate them together (`janus_use_profile`).
 - One-shot cross-account calls without switching the active account (`janus_with_account`).
+- Code-execution mode: agents with shell access can skip the MCP session and use the CLI directly — `janusmcp tools` (compact list), `janusmcp schema <tool>` (one schema on demand), `janusmcp call <tool>` (invoke) — so no tool definitions are loaded into the model context.
 - Local-first: stdio + Streamable HTTP transports; OS-keychain vault; OAuth (PKCE) with persistent, auto-refreshing tokens.
 - Works with any MCP client and is listed on the official MCP Registry.
 

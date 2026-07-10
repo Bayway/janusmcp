@@ -1,12 +1,23 @@
 # janusmcp
 
 Local multi-account MCP broker — one endpoint, every account. Add credentials once,
-switch identity without reconnecting, from any LLM.
+switch identity without reconnecting, from any LLM. Use it as a standard MCP server
+**or straight from the CLI** (code-execution mode) so agents invoke tools on demand
+without loading every definition into context.
 
 ```bash
-npx @bayway/janusmcp serve            # run it
+npx @bayway/janusmcp serve            # run it as an MCP server
 npm i -g @bayway/janusmcp             # or install globally
 janusmcp version
+```
+
+Agents (or you) can also skip the MCP session entirely and call tools from the shell:
+
+```bash
+janusmcp tools                                   # compact tool list, active account
+janusmcp schema list_tables                      # one tool's full schema, on demand
+janusmcp call list_tables --args '{"schemas":["public"]}'
+janusmcp call ping --account client_b            # cross-account without switching
 ```
 
 On install this package downloads the prebuilt native binary matching your platform

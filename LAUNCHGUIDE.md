@@ -16,7 +16,10 @@ identity on the fly from any LLM client, with no reconnect and no re-login. It o
 exposes the *active* account's tools (or a whole "profile" of accounts across services),
 so the model's context stays clean. It runs entirely on your machine — your keychain,
 your control, no backend, no telemetry. It speaks standard MCP over stdio and Streamable
-HTTP, so it works with Claude, ChatGPT, Cursor, VS Code, Gemini, and others.
+HTTP, so it works with Claude, ChatGPT, Cursor, VS Code, Gemini, and others. Agents with
+shell access don't even need an MCP session: the code-execution mode (`janusmcp tools` /
+`schema` / `call`) lets them discover and invoke tools on demand from the CLI, with zero
+tool definitions loaded into context.
 
 It's for anyone who juggles more than one account of the same service: agencies and
 consultants managing many clients, teams with multiple orgs/workspaces, or developers
@@ -64,7 +67,7 @@ Multi-account management, Identity switching, Agencies & consultants, Multi-tena
 - Tool: janus_login — Complete a browser OAuth login for an account.
 
 ## Tags
-mcp, broker, multi-account, oauth, proxy, identity, local-first, keychain, developer-tools, stdio, streamable-http, agencies
+mcp, broker, multi-account, oauth, proxy, identity, local-first, keychain, developer-tools, stdio, streamable-http, agencies, code-execution, agents
 
 ## Documentation URL
 https://github.com/bayway/janusmcp
