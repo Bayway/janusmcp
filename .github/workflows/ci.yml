@@ -84,6 +84,21 @@ jobs:
       - name: Validate PR template and ADRs
         run: python3 scripts/check-docs.py
 
+  npm-wrapper:
+    name: test npm launcher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test native launcher contract
+        working-directory: npm
+        run: npm test
+      - name: Validate package contents
+        working-directory: npm
+        run: npm pack --dry-run
+
   daemon-smoke-unix:
     name: daemon smoke (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

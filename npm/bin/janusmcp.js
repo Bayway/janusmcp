@@ -8,16 +8,16 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 
 const isWin = process.platform === 'win32';
-const bin = path.join(__dirname, isWin ? 'multimcp.exe' : 'multimcp');
+const bin = path.join(__dirname, isWin ? 'janusmcp.exe' : 'janusmcp');
 
 if (!fs.existsSync(bin)) {
-  console.error('[multimcp] native binary missing — reinstall the package (npm i -g multimcp).');
+  console.error('[janusmcp] native binary missing — reinstall the package (npm i -g @bayway/janusmcp).');
   process.exit(1);
 }
 
 const res = spawnSync(bin, process.argv.slice(2), { stdio: 'inherit' });
 if (res.error) {
-  console.error('[multimcp] ' + res.error.message);
+  console.error('[janusmcp] ' + res.error.message);
   process.exit(1);
 }
 process.exit(res.status === null ? 1 : res.status);
