@@ -15,5 +15,8 @@
 /npm/package.json        @Bayway
 /go/internal/vault/      @Bayway
 /go/internal/oauth/      @Bayway
+/docs/adr/               @Bayway
+/docs/architecture.md    @Bayway
+/docs/compatibility.md   @Bayway
 /LICENSE                 @Bayway
 /SECURITY.md             @Bayway

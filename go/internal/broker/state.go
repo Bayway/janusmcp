@@ -2,9 +2,12 @@ package broker
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
+	"github.com/bayway/janusmcp/internal/atomicfile"
 	"github.com/bayway/janusmcp/internal/config"
 )
 
@@ -39,14 +42,39 @@ func (s *BrokerState) GlobalActive() string {
 
 func (s *BrokerState) BindingMode() config.BindingMode { return s.bindingMode }
 
-func (s *BrokerState) SetGlobal(id string) {
+func (s *BrokerState) SetGlobal(id string) error {
 	s.mu.Lock()
-	s.globalActive = id
+	defer s.mu.Unlock()
 	path := s.statePath
-	s.mu.Unlock()
-	if b, err := json.MarshalIndent(persisted{GlobalActive: id}, "", "  "); err == nil {
-		_ = os.WriteFile(path, b, 0o600) // best-effort persistence
+	b, err := json.MarshalIndent(persisted{GlobalActive: id}, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode broker state: %w", err)
 	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create broker state directory: %w", err)
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".janusmcp-state-*")
+	if err != nil {
+		return fmt.Errorf("create broker state file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("secure broker state file: %w", err)
+	}
+	if _, err := tmp.Write(b); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("write broker state: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close broker state: %w", err)
+	}
+	if err := atomicfile.Replace(tmpPath, path); err != nil {
+		return fmt.Errorf("replace broker state: %w", err)
+	}
+	s.globalActive = id
+	return nil
 }
 
 // SessionRegistry tracks live sessions so a global switch can re-apply tools to each.

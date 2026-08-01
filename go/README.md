@@ -1,14 +1,10 @@
-# JanusMCP Broker — implementazione Go (Fasi 0–3)
+# JanusMCP — implementazione Go del broker CLI e MCP
 
 Port in Go del broker MCP multi-account, con **vault** integrato. Stesso modello dello
 spike TS (active-account, scoping per-sessione/globale/locked), ma pensato per il
 prodotto vero: **binario singolo** cross-platform e segreti nel **keychain del sistema**.
 
-> ⚠️ **Primo getto, da compilare sul tuo Mac.** È stato scritto allineando le firme
-> dell'SDK Go ufficiale dalla documentazione, ma **non è stato compilato** nell'ambiente
-> dove l'ho prodotto (la toolchain Go non era installabile lì). Builda con i comandi qui
-> sotto e, se ci sono errori, incollameli: li sistemo. I punti più probabili da aggiustare
-> sono elencati in fondo.
+Il binario è compilato e verificato automaticamente in CI su ogni modifica e release.
 
 ## Struttura
 
@@ -56,6 +52,17 @@ JANUS_TRANSPORT=http JANUS_HTTP_PORT=7332 ./janusmcp serve
 JANUS_TRANSPORT=both ./janusmcp serve
 ```
 
+### Uso diretto da CLI
+
+```bash
+./janusmcp tools
+./janusmcp schema list_tables
+./janusmcp call list_tables --args '{"schemas":["public"]}' --json --timeout 30s
+./janusmcp use client_a
+```
+
+I comandi CLI condividono config, vault OAuth e account attivo con `serve`.
+
 ### Variabili d'ambiente
 
 | Variabile | Default | Note |
@@ -66,6 +73,7 @@ JANUS_TRANSPORT=both ./janusmcp serve
 | `JANUS_STATE` | `<configDir>/.janusmcp-state.json` | stato globale persistito |
 | `JANUS_VAULT` | `keyring` | `keyring` (OS) \| `file` (fallback cifrato) |
 | `JANUS_VAULT_DIR` | `.` | dir per il backend `file` |
+| `JANUS_CLI_TIMEOUT` | vuoto | timeout opt-in (`30s`, `2m`) per discovery e call |
 
 ## Vault
 

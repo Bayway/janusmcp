@@ -286,7 +286,9 @@ func (s *Session) setActiveSelector(ctx context.Context, selector, scope string)
 		}
 	}
 	if scope == "global" {
-		s.core.State.SetGlobal(selector)
+		if err := s.core.State.SetGlobal(selector); err != nil {
+			return textResult(map[string]any{"ok": false, "error": err.Error()})
+		}
 		s.mu.Lock()
 		s.localActive = ""
 		s.mu.Unlock()

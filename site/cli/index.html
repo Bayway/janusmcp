@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JanusMCP CLI — On-demand tools for AI agents</title>
+<meta name="description" content="Use JanusMCP as a multi-account CLI for Claude Code, Codex, Cursor and other shell-based AI agents. Discover schemas and call MCP tools on demand." />
+<link rel="canonical" href="https://janusmcp.dev/cli/" />
+<meta property="og:title" content="JanusMCP CLI — On-demand tools for AI agents" />
+<meta property="og:description" content="CLI on the surface. MCP under the hood. One secure multi-account tool broker for every AI agent." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://janusmcp.dev/cli/" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "JanusMCP CLI",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Windows, Linux",
+  "description": "A local multi-account tool CLI for AI agents, backed by MCP servers and a secure credential vault.",
+  "url": "https://janusmcp.dev/cli/",
+  "downloadUrl": "https://github.com/bayway/janusmcp",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<style>
+  :root{--bg:#0a0c11;--panel:#12151f;--line:#2a3147;--txt:#e9ecf5;--mut:#aab2c5;--accent:#7c8cff;--accent2:#56e1c4;--code:#0b0e16}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:960px;margin:auto;padding:0 22px}
+  nav{border-bottom:1px solid var(--line);background:rgba(10,12,17,.94);position:sticky;top:0;z-index:2}nav .wrap{height:62px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:750;color:var(--txt)}.links a{margin-left:20px;color:var(--mut)}
+  header{padding:76px 0 48px;background:radial-gradient(720px 360px at 65% 0,rgba(124,140,255,.18),transparent 65%)}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--accent2);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  h1{font-size:clamp(40px,7vw,66px);line-height:1.02;margin:20px 0 18px;letter-spacing:-1.8px}.grad{background:linear-gradient(90deg,var(--accent),var(--accent2));background-clip:text;color:transparent}.lead{font-size:19px;color:var(--mut);max-width:760px}.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.btn{padding:11px 18px;border-radius:10px;border:1px solid var(--line);font-weight:650}.primary{background:var(--accent);color:#090b10;border-color:var(--accent)}
+  section{padding:48px 0;border-top:1px solid #1d2230}h2{font-size:30px;margin:0 0 12px}h3{font-size:18px;margin:26px 0 8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;margin-top:24px}.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:20px}.card h3{margin:0 0 6px}.card p{margin:0;color:var(--mut)}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:18px;overflow:auto;color:#d8dded}code{font-family:"SFMono-Regular",Consolas,monospace}.inl{background:#171b27;padding:2px 6px;border-radius:5px}.note{border-left:3px solid var(--accent2);padding:9px 14px;background:rgba(86,225,196,.06);color:var(--mut)}
+  table{border-collapse:collapse;width:100%;margin-top:18px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px}th{color:var(--mut)}footer{padding:38px 0 54px;color:var(--mut);border-top:1px solid var(--line)}
+  @media(max-width:650px){.links a:not(:last-child){display:none}header{padding-top:48px}}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><a class="brand" href="/">JanusMCP</a><div class="links"><a href="#quickstart">Quickstart</a><a href="#agents">Agent setup</a><a href="https://github.com/bayway/janusmcp">GitHub</a></div></div></nav>
+<header><div class="wrap">
+  <span class="pill">Multi-account agent tool CLI</span>
+  <h1>CLI on the surface.<br><span class="grad">MCP under the hood.</span></h1>
+  <p class="lead">Give Claude Code, Codex, Cursor and any shell-based agent on-demand access to your tools. JanusMCP discovers one schema at a time, keeps credentials in your local vault and routes every call to the right account.</p>
+  <div class="cta"><a class="btn primary" href="#quickstart">Start with the CLI</a><a class="btn" href="/#install">Connect over MCP</a></div>
+</div></header>
+<main>
+<section id="quickstart"><div class="wrap">
+  <h2>Discover, inspect, call</h2>
+  <p class="lead">Agents load only what they need. The complete catalog of tool schemas is not injected upfront.</p>
+  <pre><code>npm install -g @bayway/janusmcp
+
+janusmcp tools
+janusmcp schema list_tables
+janusmcp call list_tables --args '{"schemas":["public"]}'
+janusmcp call ping --account client_b --json --timeout 30s</code></pre>
+  <div class="grid">
+    <div class="card"><h3>Compact discovery</h3><p><code>tools</code> returns names and short descriptions. Use <code>--json</code> only when full definitions are required.</p></div>
+    <div class="card"><h3>One schema at a time</h3><p><code>schema &lt;tool&gt;</code> provides the exact input contract immediately before a call.</p></div>
+    <div class="card"><h3>Stable automation</h3><p><code>call --json</code>, opt-in timeouts and documented exit codes make agent loops predictable.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Accounts and profiles</h2>
+  <pre><code>janusmcp status
+janusmcp use client_a                 # persist the default account/profile
+janusmcp tools client_b               # inspect without changing the default
+janusmcp call ping --account client_b # one-shot cross-account call</code></pre>
+</div></section>
+
+<section id="agents"><div class="wrap">
+  <h2>Instructions for an AI agent</h2>
+  <p>Copy this into your project instructions or agent skill:</p>
+  <pre><code>Use JanusMCP from the shell for external tools.
+1. Run `janusmcp tools [account-or-profile]` to discover relevant tools.
+2. Run `janusmcp schema &lt;tool&gt; --account &lt;selector&gt;` before the first call.
+3. Invoke with `janusmcp call &lt;tool&gt; --account &lt;selector&gt; --json --timeout 2m`.
+4. Pass arguments through `--args '&lt;json&gt;'` or JSON on stdin.
+5. Never guess a tool schema. Treat non-zero exit codes as failures and inspect stderr.</code></pre>
+  <p>See the complete <a href="https://github.com/bayway/janusmcp/blob/main/docs/agent-cli.md">agent CLI guide</a>.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Stable exit codes</h2>
+  <table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td>0</td><td>Success</td></tr><tr><td>1</td><td>Unclassified error</td></tr>
+    <tr><td>2</td><td>Invalid syntax, flag or JSON input</td></tr><tr><td>3</td><td>Configuration, selector or tool lookup error</td></tr>
+    <tr><td>4</td><td>Credential or authentication error</td></tr><tr><td>5</td><td>Upstream connection or protocol error</td></tr>
+    <tr><td>6</td><td>The MCP tool returned <code>isError</code></td></tr><tr><td>124</td><td>Timeout</td></tr><tr><td>130</td><td>Interrupted by signal</td></tr>
+  </tbody></table>
+</div></section>
+</main>
+<footer><div class="wrap">JanusMCP is local, open source and MIT-licensed. <a href="/">Product overview</a> · <a href="https://github.com/bayway/janusmcp">Source</a> · <a href="/privacy">Privacy</a></div></footer>
+</body>
+</html>

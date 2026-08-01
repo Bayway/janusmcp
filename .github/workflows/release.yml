@@ -11,8 +11,28 @@ permissions:
   packages: write   # push Docker images to GHCR
 
 jobs:
+  verify:
+    name: Verify release source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install mock upstream dependencies
+        working-directory: spike
+        run: npm install --no-audit --no-fund
+      - name: Test and build
+        working-directory: go
+        run: go test ./... -count=1 && go build ./...
+
   goreleaser:
     name: GoReleaser (binaries, brew, scoop, deb/rpm/apk, docker)
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

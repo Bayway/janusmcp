@@ -1,11 +1,12 @@
 # JanusMCP
 
 ## Tagline
-One MCP endpoint, every account — switch identity without reconnecting.
+One credential broker. Every account. From the CLI or MCP.
 
 ## Description
-JanusMCP is a local MCP broker that sits between your LLM client and the real MCP
-servers (Supabase, GitHub, Google Workspace, Stripe, Linear, Cloudflare, and more).
+JanusMCP is a local multi-account tool broker for AI agents, available directly from
+the CLI or through MCP. It sits in front of MCP servers such as Supabase, GitHub,
+Google Workspace, Stripe, Linear, Cloudflare, and more.
 The MCP protocol has no notion of "account" — one session means one identity and one
 set of credentials — so switching between, say, two clients' Supabase projects or two
 Google Workspace accounts normally means disconnecting, reconnecting, and redoing the
@@ -17,9 +18,10 @@ exposes the *active* account's tools (or a whole "profile" of accounts across se
 so the model's context stays clean. It runs entirely on your machine — your keychain,
 your control, no backend, no telemetry. It speaks standard MCP over stdio and Streamable
 HTTP, so it works with Claude, ChatGPT, Cursor, VS Code, Gemini, and others. Agents with
-shell access don't even need an MCP session: the code-execution mode (`janusmcp tools` /
-`schema` / `call`) lets them discover and invoke tools on demand from the CLI, with zero
-tool definitions loaded into context.
+shell access can use the code-execution mode (`janusmcp tools` / `schema` / `call`) to
+discover and invoke tools on demand from the CLI, with no bulk tool definitions loaded
+upfront. Stable JSON output, timeouts and exit codes make the same workflow suitable
+for automated agents.
 
 It's for anyone who juggles more than one account of the same service: agencies and
 consultants managing many clients, teams with multiple orgs/workspaces, or developers
@@ -52,7 +54,7 @@ Multi-account management, Identity switching, Agencies & consultants, Multi-tena
 - Secure vault: OS keychain (macOS/Windows/Linux) with an encrypted-file fallback; secrets referenced as `vault:<name>`.
 - Browser OAuth loopback (PKCE) with auto-refresh, including bring-your-own pre-registered clients (e.g. Google Workspace).
 - Built-in catalog of ready-to-use connectors: Supabase, GitHub, Notion, Sentry, Stripe, HubSpot, PayPal, Linear, Vercel, Canva, Neon, Netlify, Zapier, ActiveCampaign, Google Workspace (Gmail/Drive/Calendar/Chat), Cloudflare, Asana, Monday, Intercom, Webflow, Wix, Square, Globalping, Figma.
-- Code-execution mode (`janusmcp tools` / `schema` / `call`) to invoke tools on demand from the shell and cut token usage.
+- Agent-first CLI (`janusmcp tools` / `schema` / `call`) with JSON output, timeouts and stable exit codes.
 - Fully local: no backend, no telemetry; credentials never pass through the model context.
 
 ## Getting Started
@@ -67,7 +69,7 @@ Multi-account management, Identity switching, Agencies & consultants, Multi-tena
 - Tool: janus_login — Complete a browser OAuth login for an account.
 
 ## Tags
-mcp, broker, multi-account, oauth, proxy, identity, local-first, keychain, developer-tools, stdio, streamable-http, agencies, code-execution, agents
+mcp, cli, ai-agents, agent-tools, tool-calling, broker, multi-account, oauth, identity, local-first, keychain, developer-tools, code-execution
 
 ## Documentation URL
 https://github.com/bayway/janusmcp
