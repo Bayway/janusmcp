@@ -34,6 +34,10 @@ jobs:
         working-directory: spike
         run: npm install --no-audit --no-fund
 
+      - name: Audit mock upstream dependencies
+        working-directory: spike
+        run: npm audit --audit-level=moderate
+
       - name: Vet
         run: go vet ./...
 

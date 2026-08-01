@@ -26,6 +26,9 @@ jobs:
       - name: Install mock upstream dependencies
         working-directory: spike
         run: npm install --no-audit --no-fund
+      - name: Audit mock upstream dependencies
+        working-directory: spike
+        run: npm audit --audit-level=moderate
       - name: Test and build
         working-directory: go
         run: go test ./... -count=1 && go build ./...
