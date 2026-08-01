@@ -6,6 +6,14 @@ All notable changes to JanusMCP are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-01
+
+### Fixed
+
+- Corrected the npm launcher to execute the downloaded `janusmcp` binary instead of the retired
+  `multimcp` name, restoring `npx @bayway/janusmcp` installations.
+- Added an npm launcher contract test to CI and the release source verification.
+
 ## [0.5.0] - 2026-08-01
 
 ### Added
@@ -40,6 +48,7 @@ All notable changes to JanusMCP are documented here. The format follows
 - Preserved MCP stdio/HTTP behavior, existing control tools, raw call output, `tools --json`, and
   `schema` success formats.
 
-[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/bayway/janusmcp/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/bayway/janusmcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bayway/janusmcp/compare/v0.3.0...v0.4.0

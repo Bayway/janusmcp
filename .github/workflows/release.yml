@@ -30,6 +30,10 @@ jobs:
         working-directory: go
         run: go test ./... -count=1 && go build ./...
 
+      - name: Test npm launcher
+        working-directory: npm
+        run: npm test
+
   goreleaser:
     name: GoReleaser (binaries, brew, scoop, deb/rpm/apk, docker)
     needs: verify

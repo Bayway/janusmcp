@@ -33,6 +33,7 @@
     "janusmcp": "bin/janusmcp.js"
   },
   "scripts": {
+    "test": "node --test test.js",
     "postinstall": "node install.js"
   },
   "files": [
