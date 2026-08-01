@@ -7,6 +7,7 @@
 //	janusmcp schema <tool>         # code-exec mode: one tool's full schema
 //	janusmcp call <tool> [flags]   # code-exec mode: invoke a tool
 //	janusmcp use <selector>        # persist the active account/profile
+//	janusmcp daemon <command>      # manage reusable local upstream sessions
 //	janusmcp ui                    # local control panel
 //	janusmcp add <template> [id]   # add an account from a template
 //	janusmcp catalog               # list account templates
@@ -106,6 +107,10 @@ func main() {
 		err = runCall(os.Args[2:])
 	case "use":
 		err = runUse(os.Args[2:])
+	case "daemon":
+		err = runDaemon(os.Args[2:])
+	case "_daemon-serve":
+		err = runDaemonChild()
 	case "vault":
 		err = runVault(os.Args[2:])
 	case "login":
@@ -157,6 +162,8 @@ Commands:
                              Invoke a tool and print its result; JSON args also
                              accepted on stdin. --json emits a stable envelope.
   use <account|profile>      Persist the active selector for later CLI/MCP use.
+  daemon <command>           Manage the local reusable broker (start, stop,
+                             restart, status).
   ui                         Open the local control panel (add accounts, log in).
   add <template> [id]        Add an account from a template (see: catalog).
   catalog                    List the built-in account templates.
@@ -173,10 +180,12 @@ Commands:
 
 CLI agent flags:
   --timeout 30s|2m           Optional timeout (or JANUS_CLI_TIMEOUT).
+  --direct                   Bypass a running managed daemon.
+  --daemon                   Require the managed daemon.
 
 Exit codes:
   0 success · 1 generic · 2 usage/input · 3 config/selector · 4 auth
-  5 upstream/protocol · 6 tool error · 124 timeout · 130 interrupted
+  5 upstream/daemon · 6 tool error · 124 timeout · 130 interrupted
 
 Clients (install/uninstall):
   claude-desktop | claude-code | cursor | vscode | gemini | codex | chatgpt | print
@@ -215,10 +224,18 @@ func configPath() string {
 	return "config.json"
 }
 
-func runServe() error {
+type brokerRuntime struct {
+	core       *broker.Core
+	cfg        *config.Config
+	configPath string
+}
+
+// newBrokerRuntime wires the shared broker stack used by stdio, ordinary HTTP,
+// and the managed local daemon.
+func newBrokerRuntime() (*brokerRuntime, error) {
 	v, err := buildVault()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cpath, _ := filepath.Abs(configPath())
 	cdir := filepath.Dir(cpath)
@@ -227,7 +244,7 @@ func runServe() error {
 	// per upstream spawn by the manager, not once at startup.
 	cfg, err := config.LoadRawOrEmpty(cpath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	providers := expandProviders(mergeProviders(oauth.DefaultProviders(), cfg.OAuthProviders))
 	store := oauth.NewStore(v, providers)
@@ -246,6 +263,15 @@ func runServe() error {
 		Registry: broker.NewSessionRegistry(),
 		Store:    store,
 	}
+	return &brokerRuntime{core: core, cfg: cfg, configPath: cpath}, nil
+}
+
+func runServe() error {
+	runtime, err := newBrokerRuntime()
+	if err != nil {
+		return err
+	}
+	core, cfg := runtime.core, runtime.cfg
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

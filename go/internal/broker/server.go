@@ -165,9 +165,10 @@ func (s *Session) registerControlTools() {
 		InputSchema: &jsonschema.Schema{
 			Type: "object",
 			Properties: map[string]*jsonschema.Schema{
-				"account_id": {Type: "string", Description: "Target account id."},
-				"tool":       {Type: "string", Description: "Tool to call; omit to list the account's tools."},
-				"arguments":  {Type: "object", Description: "Arguments object for the tool."},
+				"account_id":  {Type: "string", Description: "Target account id."},
+				"tool":        {Type: "string", Description: "Tool to call; omit to list the account's tools."},
+				"arguments":   {Type: "object", Description: "Arguments object for the tool."},
+				"full_schema": {Type: "boolean", Description: "When listing, include complete tool definitions. Intended for CLI discovery."},
 			},
 			Required: []string{"account_id"},
 		},
@@ -310,9 +311,10 @@ func (s *Session) setActiveSelector(ctx context.Context, selector, scope string)
 // the session's active selection. With no "tool", it lists that account's tools.
 func (s *Session) handleWithAccount(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	var in struct {
-		AccountID string          `json:"account_id"`
-		Tool      string          `json:"tool"`
-		Arguments json.RawMessage `json:"arguments"`
+		AccountID  string          `json:"account_id"`
+		Tool       string          `json:"tool"`
+		Arguments  json.RawMessage `json:"arguments"`
+		FullSchema bool            `json:"full_schema"`
 	}
 	if len(req.Params.Arguments) > 0 {
 		_ = json.Unmarshal(req.Params.Arguments, &in)
@@ -327,6 +329,9 @@ func (s *Session) handleWithAccount(ctx context.Context, req *mcp.CallToolReques
 		tools, err := s.core.Manager.Tools(ctx, in.AccountID)
 		if err != nil {
 			return textResult(map[string]any{"ok": false, "error": err.Error()}), nil
+		}
+		if in.FullSchema {
+			return textResult(map[string]any{"account": in.AccountID, "tools": tools}), nil
 		}
 		list := make([]map[string]string, 0, len(tools))
 		for _, t := range tools {

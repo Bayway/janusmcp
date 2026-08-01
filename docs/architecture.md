@@ -11,6 +11,8 @@ flowchart LR
     Agent["Agent or shell"] --> CLI["JanusMCP CLI"]
     Client["MCP client"] --> Downstream["Downstream MCP session"]
     CLI -->|direct| Manager["UpstreamManager"]
+    CLI -->|authenticated loopback MCP| Daemon["Managed daemon"]
+    Daemon --> Core["Broker Core"]
     Downstream --> Core
     Core --> State["Broker state and session registry"]
     Core --> Manager
@@ -20,14 +22,16 @@ flowchart LR
 ```
 
 The CLI and downstream MCP server are two surfaces over the same account configuration,
-credential resolver, MCP SDK, and upstream semantics.
+credential resolver, MCP SDK, and upstream semantics. The daemon is an optional persistence
+boundary for repeated CLI calls, not a replacement protocol.
 
 ## Components
 
 | Component | Responsibility | Source |
 |---|---|---|
-| Command entrypoint | Dispatches CLI, MCP server, UI, and install commands | `go/cmd/janusmcp/main.go` |
-| CLI access | Discovers schemas and invokes tools directly | `go/cmd/janusmcp/tools.go` |
+| Command entrypoint | Dispatches CLI, MCP server, UI, install, and daemon commands | `go/cmd/janusmcp/main.go` |
+| CLI access | Discovers schemas and invokes tools through direct or daemon routing | `go/cmd/janusmcp/tools.go`, `daemon_client.go` |
+| Managed daemon | Owns lifecycle, loopback listener, bearer authentication, and metadata | `go/cmd/janusmcp/daemon.go` |
 | Broker Core | Creates downstream MCP sessions and control tools | `go/internal/broker/server.go` |
 | UpstreamManager | Lazily opens per-account MCP sessions and caches tool definitions | `go/internal/broker/upstream.go` |
 | BrokerState | Persists the global selector and tracks session-local selection | `go/internal/broker/state.go` |
@@ -49,6 +53,13 @@ the MCP tool-list change notification.
 one-shot `UpstreamManager`, perform the operation, and close the upstream sessions. Raw output
 is the human-compatible default; `--json` adds the machine contract.
 
+### Managed daemon path
+
+The daemon holds a Broker Core and `UpstreamManager` across CLI invocations. Each CLI command
+opens a temporary authenticated MCP HTTP session to the daemon. Explicit selectors have
+session scope, so a command does not mutate the global active selector. In automatic mode, an
+absent, unhealthy, incompatible, or locked daemon falls back to the direct path.
+
 ## Selection and routing
 
 Selectors resolve to one account or to all accounts in a profile. Precedence is:
@@ -67,16 +78,21 @@ has one deterministic owner.
 - Configuration contains account metadata and secret references, not token values.
 - OAuth and vault secrets remain in the OS keychain or encrypted file-vault fallback.
 - Global active state is atomically persisted with owner-only permissions.
+- Daemon metadata stores PID, endpoint, random token, version, configuration identity, start
+  time, and log path under the OS configuration directory with owner-only permissions.
 - Upstream sessions and tool caches are in memory and disappear when their owning process exits.
 
 ## Trust boundaries and invariants
 
 - JanusMCP binds local HTTP services to loopback unless the user explicitly configures the
   ordinary MCP HTTP server differently.
-- OAuth tokens, vault values, and resolved secret environment variables must not
+- Managed daemon MCP, health, and shutdown endpoints always require its bearer token.
+- Bearer tokens, OAuth tokens, vault values, and resolved secret environment variables must not
   enter logs or model-visible tool output.
 - MCP remains the upstream protocol and the downstream client contract.
-- CLI and MCP routes must preserve upstream tool results and account-selection semantics.
+- Direct CLI mode remains available even when daemon state is stale or incompatible.
+- CLI JSON, timeout, error, and raw-output behavior must be identical across direct and daemon
+  routes.
 
 See the [compatibility contract](compatibility.md), [security policy](../SECURITY.md), and
 [ADRs](adr/README.md) before changing these boundaries.

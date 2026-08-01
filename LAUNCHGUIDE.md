@@ -20,8 +20,8 @@ your control, no backend, no telemetry. It speaks standard MCP over stdio and St
 HTTP, so it works with Claude, ChatGPT, Cursor, VS Code, Gemini, and others. Agents with
 shell access can use the code-execution mode (`janusmcp tools` / `schema` / `call`) to
 discover and invoke tools on demand from the CLI, with no bulk tool definitions loaded
-upfront. Stable JSON output, timeouts and exit codes make the same workflow suitable
-for automated agents.
+upfront. Stable JSON output, timeouts, exit codes and an optional local daemon make the
+same workflow suitable for automated agents.
 
 It's for anyone who juggles more than one account of the same service: agencies and
 consultants managing many clients, teams with multiple orgs/workspaces, or developers
@@ -54,7 +54,7 @@ Multi-account management, Identity switching, Agencies & consultants, Multi-tena
 - Secure vault: OS keychain (macOS/Windows/Linux) with an encrypted-file fallback; secrets referenced as `vault:<name>`.
 - Browser OAuth loopback (PKCE) with auto-refresh, including bring-your-own pre-registered clients (e.g. Google Workspace).
 - Built-in catalog of ready-to-use connectors: Supabase, GitHub, Notion, Sentry, Stripe, HubSpot, PayPal, Linear, Vercel, Canva, Neon, Netlify, Zapier, ActiveCampaign, Google Workspace (Gmail/Drive/Calendar/Chat), Cloudflare, Asana, Monday, Intercom, Webflow, Wix, Square, Globalping, Figma.
-- Agent-first CLI (`janusmcp tools` / `schema` / `call`) with JSON output, timeouts and stable exit codes.
+- Agent-first CLI (`janusmcp tools` / `schema` / `call`) with JSON output, timeouts, stable exit codes and optional session-reuse daemon.
 - Fully local: no backend, no telemetry; credentials never pass through the model context.
 
 ## Getting Started

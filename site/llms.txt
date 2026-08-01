@@ -14,6 +14,7 @@
 - One-shot cross-account calls without switching the active account (`janus_with_account`).
 - Code-execution mode: agents with shell access can use the CLI directly — `janusmcp tools` (compact list), `janusmcp schema <tool>` (one schema on demand), `janusmcp call <tool>` (invoke) — so no bulk tool definitions are loaded upfront.
 - Machine-safe CLI: `janusmcp call <tool> --json`, opt-in `--timeout`, stable exit codes, and `janusmcp use <account|profile>`.
+- Managed local daemon: `janusmcp daemon start` reuses upstream sessions; CLI commands auto-detect it and `--direct` bypasses it.
 - Local-first: stdio + Streamable HTTP transports; OS-keychain vault; OAuth (PKCE) with persistent, auto-refreshing tokens.
 - Works with any MCP client and is listed on the official MCP Registry.
 

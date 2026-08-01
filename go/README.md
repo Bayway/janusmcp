@@ -59,9 +59,14 @@ JANUS_TRANSPORT=both ./janusmcp serve
 ./janusmcp schema list_tables
 ./janusmcp call list_tables --args '{"schemas":["public"]}' --json --timeout 30s
 ./janusmcp use client_a
+
+# opzionale: mantiene vive le sessioni upstream tra chiamate
+./janusmcp daemon start
+./janusmcp daemon status --json
 ```
 
-I comandi CLI condividono config, vault OAuth e account attivo con `serve`.
+I comandi CLI condividono config, vault OAuth e account attivo con `serve`. Il daemon
+gestito è limitato al loopback e autenticato; `--direct` lo bypassa.
 
 ### Variabili d'ambiente
 
@@ -74,6 +79,7 @@ I comandi CLI condividono config, vault OAuth e account attivo con `serve`.
 | `JANUS_VAULT` | `keyring` | `keyring` (OS) \| `file` (fallback cifrato) |
 | `JANUS_VAULT_DIR` | `.` | dir per il backend `file` |
 | `JANUS_CLI_TIMEOUT` | vuoto | timeout opt-in (`30s`, `2m`) per discovery e call |
+| `JANUS_DAEMON` | `auto` | `auto` \| `require` \| `off` per il routing CLI |
 
 ## Vault
 

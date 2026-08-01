@@ -128,4 +128,8 @@ func TestWithAccountOneShot(t *testing.T) {
 	if !strings.Contains(listed, "ping") || !strings.Contains(listed, "db_query") {
 		t.Fatalf("with_account listing should include ping and db_query, got %s", listed)
 	}
+	full := callText(ctx, t, cs, "janus_with_account", map[string]any{"account_id": "azienda_b", "full_schema": true})
+	if !strings.Contains(full, "inputSchema") || !strings.Contains(full, "instance_id") {
+		t.Fatalf("full schema listing should contain complete definitions, got %s", full)
+	}
 }

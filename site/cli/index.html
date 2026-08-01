@@ -63,11 +63,17 @@ janusmcp call ping --account client_b --json --timeout 30s</code></pre>
 </div></section>
 
 <section><div class="wrap">
-  <h2>Accounts and profiles</h2>
+  <h2>Accounts, profiles and reuse</h2>
   <pre><code>janusmcp status
 janusmcp use client_a                 # persist the default account/profile
 janusmcp tools client_b               # inspect without changing the default
-janusmcp call ping --account client_b # one-shot cross-account call</code></pre>
+janusmcp call ping --account client_b # one-shot cross-account call
+
+janusmcp daemon start                 # keep upstream sessions warm
+janusmcp daemon status --json
+janusmcp call ping                    # auto-detects the daemon
+janusmcp call ping --direct           # bypasses it for this call</code></pre>
+  <p class="note">The managed daemon listens only on <code>127.0.0.1</code>, requires a randomly generated local bearer token and remains optional. Direct one-shot mode is always available.</p>
 </div></section>
 
 <section id="agents"><div class="wrap">

@@ -58,7 +58,7 @@ The compatibility rules are documented in [compatibility.md](../compatibility.md
 ## Security and privacy
 
 Both surfaces use the same local credential resolver and vault. CLI output must never expose
-resolved credentials.
+resolved credentials or internal daemon authentication material.
 
 ## Validation
 

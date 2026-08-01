@@ -4,7 +4,7 @@ Start here when changing or operating JanusMCP:
 
 - [Architecture](architecture.md) — components, runtime paths, state, and trust boundaries.
 - [Compatibility contract](compatibility.md) — behavior that releases must preserve.
-- [Testing](testing.md) — local, cross-platform, CLI/MCP, and release validation.
+- [Testing](testing.md) — local, cross-platform, daemon, and release validation.
 - [Architecture Decision Records](adr/README.md) — durable decisions and their rationale.
 - [CLI instructions for agents](agent-cli.md) — safe discovery and invocation workflow.
 - [Repository setup](repo-setup.md) — branch rules, code ownership, and GitHub hardening.

@@ -18,6 +18,7 @@ janusmcp schema list_tables                      # one tool's full schema, on de
 janusmcp call list_tables --args '{"schemas":["public"]}'
 janusmcp call ping --account client_b            # cross-account without switching
 janusmcp call ping --json --timeout 30s           # stable agent-readable output
+janusmcp daemon start                             # reuse upstream sessions
 ```
 
 On install this package downloads the prebuilt native binary matching your platform
