@@ -9,7 +9,7 @@ the current [architecture overview](../architecture.md); they are not implementa
 |---|---|---|
 | [0001](0001-cli-and-mcp-equal-surfaces.md) | Accepted | Keep CLI and MCP as equal surfaces over one broker |
 | [0002](0002-stable-agent-cli-contract.md) | Accepted | Define a stable, additive agent-oriented CLI contract |
-| [0003](0003-managed-loopback-daemon.md) | Proposed | Add an optional authenticated loopback daemon |
+| [0003](0003-managed-loopback-daemon.md) | Accepted | Add an optional authenticated loopback daemon |
 | [0004](0004-local-credential-boundary.md) | Accepted | Keep credentials local and resolve them at connection time |
 
 ## Process

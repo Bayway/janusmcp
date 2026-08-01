@@ -80,7 +80,7 @@ janusmcp install claude-desktop
 ```
 
 Both modes share the same config, OS-keychain vault, OAuth tokens and persisted active
-account.
+account. Use `janusmcp daemon start` to keep upstream sessions warm across repeated CLI calls.
 
 ## Install
 
@@ -154,6 +154,7 @@ Run `janusmcp help` for the full reference. The essentials:
 | `janusmcp schema <tool>` | Full JSON definition of one tool. `--account <id\|profile>` disambiguates; optional `--timeout`. |
 | `janusmcp call <tool>` | Invoke a tool. Supports `--account`, `--args`, stdin, stable `--json`, and optional `--timeout`. |
 | `janusmcp use <account\|profile>` | Persist the active selector for future CLI commands and new MCP sessions. |
+| `janusmcp daemon start\|stop\|restart\|status` | Manage the optional loopback-only daemon that reuses upstream sessions. |
 | `janusmcp ui` | Open the local control panel — add accounts, log in, set secrets. |
 | `janusmcp add <template> [id]` | Add an account from a template (`janusmcp catalog` lists them). |
 | `janusmcp catalog` | List the built-in account templates. |
@@ -237,6 +238,11 @@ an MCP server, just tell the agent that `janusmcp tools` / `schema` / `call` exi
 Discovery, schemas and invocation happen on demand, credentials stay in the keychain,
 and multi-account switching works the same as over MCP. Both modes share the config
 and the persisted active account, so you can mix them freely.
+
+For repeated calls, `janusmcp daemon start` launches an authenticated loopback-only
+broker. `tools`, `schema`, and `call` auto-detect it and reuse its upstream sessions;
+`--direct` bypasses it and `--daemon` requires it. Set `JANUS_DAEMON=auto|require|off`
+to choose a default policy.
 
 ## Key features
 

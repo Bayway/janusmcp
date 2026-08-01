@@ -31,29 +31,6 @@ type cliCore struct {
 	state   *broker.BrokerState
 }
 
-type cliAccess interface {
-	accountsFor(selector string) ([]string, error)
-	Tools(context.Context, string) ([]*mcp.Tool, error)
-	Call(context.Context, string, string, json.RawMessage) (*mcp.CallToolResult, error)
-	Account(string) (*config.Account, error)
-	Close()
-}
-
-func (c *cliCore) Tools(ctx context.Context, id string) ([]*mcp.Tool, error) {
-	return c.manager.Tools(ctx, id)
-}
-
-func (c *cliCore) Call(ctx context.Context, id, name string, payload json.RawMessage) (*mcp.CallToolResult, error) {
-	cs, err := c.manager.Session(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return cs.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: payload})
-}
-
-func (c *cliCore) Account(id string) (*config.Account, error) { return c.manager.Account(id) }
-func (c *cliCore) Close()                                     { c.manager.CloseAll() }
-
 func newCLICore() (*cliCore, error) {
 	v, err := buildVault()
 	if err != nil {
@@ -118,6 +95,8 @@ func runTools(args []string) error {
 	fs := flag.NewFlagSet("tools", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit full tool definitions as JSON")
 	timeout := fs.String("timeout", "", "cancel after a duration such as 30s or 2m")
+	forceDirect := fs.Bool("direct", false, "bypass a running managed daemon")
+	forceDaemon := fs.Bool("daemon", false, "require the managed daemon")
 	pos, err := parseInterleaved(fs, args)
 	if err != nil {
 		return jsonIf(cliErr(exitUsage, "invalid_arguments", err), *asJSON)
@@ -132,7 +111,7 @@ func runTools(args []string) error {
 		return jsonIf(err, *asJSON)
 	}
 	defer stop()
-	c, err := newCLICore()
+	c, err := openCLIAccess(ctx, *forceDirect, *forceDaemon)
 	if err != nil {
 		return jsonIf(err, *asJSON)
 	}
@@ -223,6 +202,8 @@ func runSchema(args []string) error {
 	fs := flag.NewFlagSet("schema", flag.ContinueOnError)
 	account := fs.String("account", "", "account id or profile to search (default: active)")
 	timeout := fs.String("timeout", "", "cancel after a duration such as 30s or 2m")
+	forceDirect := fs.Bool("direct", false, "bypass a running managed daemon")
+	forceDaemon := fs.Bool("daemon", false, "require the managed daemon")
 	pos, err := parseInterleaved(fs, args)
 	if err != nil {
 		return jsonErr(cliErr(exitUsage, "invalid_arguments", err))
@@ -236,7 +217,7 @@ func runSchema(args []string) error {
 		return jsonErr(err)
 	}
 	defer stop()
-	c, err := newCLICore()
+	c, err := openCLIAccess(ctx, *forceDirect, *forceDaemon)
 	if err != nil {
 		return jsonErr(err)
 	}
@@ -263,6 +244,8 @@ func runCall(args []string) error {
 	rawArgs := fs.String("args", "", "tool arguments as a JSON object (default: {} or stdin when piped)")
 	asJSON := fs.Bool("json", false, "emit a stable JSON result envelope")
 	timeout := fs.String("timeout", "", "cancel after a duration such as 30s or 2m")
+	forceDirect := fs.Bool("direct", false, "bypass a running managed daemon")
+	forceDaemon := fs.Bool("daemon", false, "require the managed daemon")
 	pos, err := parseInterleaved(fs, args)
 	if err != nil {
 		return jsonIf(cliErr(exitUsage, "invalid_arguments", err), *asJSON)
@@ -297,7 +280,7 @@ func runCall(args []string) error {
 		return jsonIf(err, *asJSON)
 	}
 	defer stop()
-	c, err := newCLICore()
+	c, err := openCLIAccess(ctx, *forceDirect, *forceDaemon)
 	if err != nil {
 		return jsonIf(err, *asJSON)
 	}

@@ -83,3 +83,83 @@ jobs:
           python-version: "3.13"
       - name: Validate PR template and ADRs
         run: python3 scripts/check-docs.py
+
+  daemon-smoke-unix:
+    name: daemon smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install mock upstream dependencies
+        working-directory: spike
+        run: npm install --no-audit --no-fund
+      - name: Build and verify direct versus daemon reuse
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="$RUNNER_TEMP/janusmcp"
+          (cd go && go build -o "$BIN" ./cmd/janusmcp)
+          export JANUS_CONFIG="$PWD/spike/config.json"
+          export JANUS_DAEMON_DIR="$RUNNER_TEMP/janusmcp-daemon"
+          export JANUS_VAULT=file
+          export JANUS_VAULT_DIR="$RUNNER_TEMP/janusmcp-vault"
+          direct_a="$($BIN call instance_id --direct)"
+          direct_b="$($BIN call instance_id --direct)"
+          test "$direct_a" != "$direct_b"
+          "$BIN" daemon start --port 17432
+          trap '"$BIN" daemon stop || true' EXIT
+          warm_a="$($BIN call instance_id --daemon)"
+          warm_b="$($BIN call instance_id --daemon)"
+          test "$warm_a" = "$warm_b"
+          "$BIN" daemon status --json
+          "$BIN" daemon stop
+          trap - EXIT
+
+  daemon-smoke-windows:
+    name: daemon smoke (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install mock upstream dependencies
+        working-directory: spike
+        run: npm install --no-audit --no-fund
+      - name: Build and verify direct versus daemon reuse
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $bin = Join-Path $env:RUNNER_TEMP "janusmcp.exe"
+          Push-Location go
+          go build -o $bin ./cmd/janusmcp
+          Pop-Location
+          $env:JANUS_CONFIG = (Resolve-Path "spike/config.json").Path
+          $env:JANUS_DAEMON_DIR = Join-Path $env:RUNNER_TEMP "janusmcp-daemon"
+          $env:JANUS_VAULT = "file"
+          $env:JANUS_VAULT_DIR = Join-Path $env:RUNNER_TEMP "janusmcp-vault"
+          $directA = (& $bin call instance_id --direct | Out-String).Trim()
+          $directB = (& $bin call instance_id --direct | Out-String).Trim()
+          if ($directA -eq $directB) { throw "direct mode unexpectedly reused an upstream" }
+          & $bin daemon start --port 17432
+          try {
+            $warmA = (& $bin call instance_id --daemon | Out-String).Trim()
+            $warmB = (& $bin call instance_id --daemon | Out-String).Trim()
+            if ($warmA -ne $warmB) { throw "daemon mode did not reuse the upstream" }
+            & $bin daemon status --json
+          } finally {
+            & $bin daemon stop
+          }

@@ -17,7 +17,7 @@ Use JanusMCP from the shell when a task needs an external service.
 5. Supply arguments with `--args '<json-object>'` or pipe a JSON object on stdin.
 6. Never invent tool names or arguments; return to `tools` and `schema` when uncertain.
 7. Treat every non-zero exit code as a failure and inspect the JSON error or stderr.
-8. Do not expose vault values, OAuth tokens, or config secrets.
+8. Do not expose vault values, OAuth tokens, config secrets, or daemon metadata.
 ```
 
 ## Account safety
@@ -39,3 +39,19 @@ existing scripts.
 
 `--timeout` accepts Go duration values such as `30s` or `2m`. It is opt-in; set
 `JANUS_CLI_TIMEOUT` to apply a default for an agent environment.
+
+## Managed daemon
+
+Use `janusmcp daemon start` when an agent will make repeated calls. Normal CLI
+commands auto-detect the healthy local daemon and reuse its upstream sessions.
+`--direct` bypasses it and `--daemon` requires it. The daemon binds only to loopback
+and authenticates every request with a token stored in the OS user config directory.
+
+```bash
+janusmcp daemon start
+janusmcp daemon status --json
+janusmcp call ping --json --timeout 30s
+janusmcp daemon stop
+```
+
+Set `JANUS_DAEMON=auto|require|off` to choose the default routing policy.

@@ -28,7 +28,7 @@ ADR: <!-- Link docs/adr/NNNN-*.md, or explain why no ADR is needed. -->
 
 ## Security and privacy
 
-- [ ] No secrets, bearer tokens, credentials, personal config, or runtime metadata are committed or logged
+- [ ] No secrets, bearer tokens, credentials, personal config, or daemon metadata are committed or logged
 - [ ] New listeners remain loopback-only or their authentication and exposure are documented
 - [ ] Credential/vault/OAuth changes preserve local storage and least-privilege assumptions
 
@@ -37,7 +37,7 @@ ADR: <!-- Link docs/adr/NNNN-*.md, or explain why no ADR is needed. -->
 ## Validation
 
 - [ ] `cd go && go fmt ./... && go vet ./... && go test ./... -count=1`
-- [ ] `cd go && go test -race ./... -count=1` when concurrency, sessions, or state code changed
+- [ ] `cd go && go test -race ./... -count=1` when concurrency, sessions, state, or daemon code changed
 - [ ] Raw CLI and `--json` behavior tested when CLI code changed
 - [ ] MCP stdio/HTTP behavior tested when broker behavior changed
 - [ ] Linux, macOS, and Windows implications considered

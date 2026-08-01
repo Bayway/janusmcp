@@ -33,7 +33,7 @@ questions outside the product scope.
 
 ### Resolve every secret once at startup
 
-Rejected because OAuth tokens may refresh and long-running broker processes need current values
+Rejected because OAuth tokens may refresh and long-running daemon sessions need current values
 when a new upstream connection is created.
 
 ## Consequences
@@ -56,10 +56,10 @@ same local boundary or require a superseding ADR.
 
 ## Security and privacy
 
-Logs, errors, tool results, state metadata, and diagnostics must never include vault values,
-OAuth tokens or resolved environment values.
+Logs, errors, tool results, daemon metadata, and diagnostics must never include vault values,
+OAuth tokens, resolved environment values, or daemon bearer tokens.
 
 ## Validation
 
 Test vault persistence and permissions, resolution at spawn/connect time, OAuth refresh, error
-redaction, and the absence of plaintext secrets in config and logs.
+redaction, and the absence of plaintext secrets in config and daemon logs.

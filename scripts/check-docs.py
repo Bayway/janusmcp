@@ -2,6 +2,7 @@
 """Validate the small set of documentation contracts used by JanusMCP CI."""
 
 from pathlib import Path
+import json
 import re
 import sys
 
@@ -65,5 +66,9 @@ for section in (
 ):
     if section not in pr_template:
         fail(f"pull request template is missing {section}")
+
+server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
+if len(server.get("description", "")) > 100:
+    fail("server.json description exceeds the MCP Registry limit of 100 characters")
 
 print(f"docs check: ok ({len(accepted)} ADRs)")

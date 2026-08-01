@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -55,6 +59,7 @@ func mockCLIConfig(t *testing.T, bindingMode string) string {
 
 func TestCallJSONEnvelopeAndToolError(t *testing.T) {
 	t.Setenv("JANUS_CONFIG", mockCLIConfig(t, "global"))
+	t.Setenv("JANUS_DAEMON", "off")
 
 	out, err := captureStdout(t, func() error { return runCall([]string{"structured_result", "--json"}) })
 	if err != nil {
@@ -84,6 +89,7 @@ func TestCallJSONEnvelopeAndToolError(t *testing.T) {
 
 func TestCallTimeout(t *testing.T) {
 	t.Setenv("JANUS_CONFIG", mockCLIConfig(t, "global"))
+	t.Setenv("JANUS_DAEMON", "off")
 	_, err := captureStdout(t, func() error {
 		return runCall([]string{"delay", "--args", `{"ms":500}`, "--timeout", "25ms", "--json"})
 	})
@@ -95,6 +101,7 @@ func TestCallTimeout(t *testing.T) {
 
 func TestCallRejectsNullArguments(t *testing.T) {
 	t.Setenv("JANUS_CONFIG", mockCLIConfig(t, "global"))
+	t.Setenv("JANUS_DAEMON", "off")
 	_, err := captureStdout(t, func() error {
 		return runCall([]string{"ping", "--args", "null", "--json"})
 	})
@@ -140,6 +147,89 @@ func TestCLIContextTimeoutPrecedence(t *testing.T) {
 		}
 	case <-time.After(250 * time.Millisecond):
 		t.Fatal("flag timeout did not override environment")
+	}
+}
+
+func TestDaemonAuthorization(t *testing.T) {
+	token := "secret"
+	srv := httptest.NewServer(daemonAuthorized(token, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})))
+	defer srv.Close()
+
+	res, err := http.Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated status=%d", res.StatusCode)
+	}
+	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
+	res, err = daemonHTTPClient(token, time.Second).Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("authenticated status=%d", res.StatusCode)
+	}
+}
+
+func TestDaemonMetadataAndStaleStatus(t *testing.T) {
+	t.Setenv("JANUS_DAEMON_DIR", t.TempDir())
+	meta := &daemonMetadata{
+		PID: 123, Endpoint: "http://127.0.0.1:1/mcp", Token: "secret",
+		Version: version, ConfigPath: "/missing/config.json", StartedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if err := writeDaemonMetadata(meta); err != nil {
+		t.Fatal(err)
+	}
+	meta.Token = "rotated-secret"
+	if err := writeDaemonMetadata(meta); err != nil {
+		t.Fatalf("replace daemon metadata: %v", err)
+	}
+	loaded, err := loadDaemonMetadata()
+	if err != nil || loaded.Token != meta.Token {
+		t.Fatalf("reloaded metadata=%#v err=%v", loaded, err)
+	}
+	path, _ := daemonMetadataPath()
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(path)
+		if err != nil || info.Mode().Perm() != 0o600 {
+			t.Fatalf("metadata permissions=%v err=%v", info.Mode().Perm(), err)
+		}
+	}
+	out, err := captureStdout(t, func() error { return runDaemonStatus([]string{"--json"}) })
+	if err != nil || !strings.Contains(out, `"running":false`) {
+		t.Fatalf("status=%q err=%v", out, err)
+	}
+}
+
+func TestDaemonRequiredWhenUnavailable(t *testing.T) {
+	t.Setenv("JANUS_DAEMON_DIR", t.TempDir())
+	t.Setenv("JANUS_CONFIG", mockCLIConfig(t, "global"))
+	_, err := openCLIAccess(context.Background(), false, true)
+	var ce *commandError
+	if !errors.As(err, &ce) || ce.kind != "daemon_unavailable" || ce.code != exitUpstream {
+		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestDaemonChildRejectsOccupiedPort(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	port := strings.TrimPrefix(listener.Addr().String(), "127.0.0.1:")
+	t.Setenv("JANUS_HTTP_PORT", port)
+	t.Setenv("JANUS_DAEMON_TOKEN", "secret")
+	t.Setenv("JANUS_CONFIG", mockCLIConfig(t, "global"))
+	t.Setenv("JANUS_VAULT", "file")
+	t.Setenv("JANUS_VAULT_DIR", t.TempDir())
+	if err := runDaemonChild(); err == nil || !strings.Contains(strings.ToLower(err.Error()), "address already in use") {
+		t.Fatalf("occupied port error=%v", err)
 	}
 }
 

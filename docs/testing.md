@@ -48,6 +48,13 @@ Broker tests must continue to exercise:
 - remote HTTP/SSE upstreams and OAuth credential resolution;
 - structured content, multiple content items, and MCP tool errors.
 
+## Daemon lifecycle checks
+
+On Linux, macOS, and Windows verify start, repeated start, status, repeated stop, restart, stale
+metadata, crash recovery, occupied port, invalid token, and configuration/version mismatch.
+Two direct `instance_id` calls must report different upstream instances; two daemon calls must
+report the same instance. `--direct`, `--daemon`, and every `JANUS_DAEMON` mode must be covered.
+
 ## Release checks
 
 Follow [RELEASING.md](../RELEASING.md). Test produced artifacts, not only the workspace binary:

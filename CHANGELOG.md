@@ -6,10 +6,18 @@ All notable changes to JanusMCP are documented here. The format follows
 
 ## [Unreleased]
 
-### Documentation
+## [0.5.0] - 2026-08-01
 
-- Added architecture, compatibility, testing, ADR, and contribution governance documentation.
-- Expanded pull request and architecture proposal templates.
+### Added
+
+- Managed local daemon lifecycle with authenticated loopback MCP, health, and shutdown endpoints.
+- Transparent CLI routing with `--direct`, `--daemon`, and `JANUS_DAEMON=auto|require|off`.
+- Cross-platform process detachment, readiness, stale-state handling, and upstream-session reuse.
+
+### Security
+
+- Random daemon bearer tokens stored with owner-only permissions and rotated on restart.
+- Daemon endpoints restricted to `127.0.0.1` and protected from unauthenticated local access.
 
 ## [0.4.0] - 2026-08-01
 
@@ -19,6 +27,8 @@ All notable changes to JanusMCP are documented here. The format follows
 - Optional command timeout through `--timeout` and `JANUS_CLI_TIMEOUT`.
 - Stable documented exit codes and persisted `janusmcp use <account|profile>` selection.
 - CLI-first homepage, `/cli/` guide, agent instructions, sitemap, JSON-LD, and package metadata.
+- Architecture, compatibility, testing, ADR, and contribution governance documentation.
+- Expanded pull request and architecture proposal templates.
 
 ### Changed
 
@@ -30,5 +40,6 @@ All notable changes to JanusMCP are documented here. The format follows
 - Preserved MCP stdio/HTTP behavior, existing control tools, raw call output, `tools --json`, and
   `schema` success formats.
 
-[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/bayway/janusmcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/bayway/janusmcp/compare/v0.3.0...v0.4.0
