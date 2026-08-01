@@ -71,20 +71,20 @@ func TestFindTool(t *testing.T) {
 	ctx := context.Background()
 
 	// Empty selector falls back to the persisted active account.
-	id, tool, err := c.findTool(ctx, "", "ping")
+	id, tool, err := findTool(ctx, c, "", "ping")
 	if err != nil || id != "azienda_a" || tool.Name != "ping" {
 		t.Fatalf("active lookup: id=%q tool=%v err=%v", id, tool, err)
 	}
-	if id, _, err := c.findTool(ctx, "azienda_b", "ping"); err != nil || id != "azienda_b" {
+	if id, _, err := findTool(ctx, c, "azienda_b", "ping"); err != nil || id != "azienda_b" {
 		t.Fatalf("explicit account: id=%q err=%v", id, err)
 	}
-	if _, _, err := c.findTool(ctx, "client_x", "ping"); err == nil || !strings.Contains(err.Error(), "several accounts") {
+	if _, _, err := findTool(ctx, c, "client_x", "ping"); err == nil || !strings.Contains(err.Error(), "several accounts") {
 		t.Fatalf("profile collision should be ambiguous, got %v", err)
 	}
-	if _, _, err := c.findTool(ctx, "", "nope"); err == nil || !strings.Contains(err.Error(), "not found") {
+	if _, _, err := findTool(ctx, c, "", "nope"); err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Fatalf("unknown tool: %v", err)
 	}
-	if _, _, err := c.findTool(ctx, "ghost", "ping"); err == nil || !strings.Contains(err.Error(), "unknown account or profile") {
+	if _, _, err := findTool(ctx, c, "ghost", "ping"); err == nil || !strings.Contains(err.Error(), "unknown account or profile") {
 		t.Fatalf("unknown selector: %v", err)
 	}
 }

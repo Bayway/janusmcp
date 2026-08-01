@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>JanusMCP — one MCP endpoint, every account</title>
-<meta name="description" content="JanusMCP is a local, open-source multi-account MCP broker. Add your credentials once and switch identity without reconnecting — from any LLM client." />
-<meta property="og:title" content="JanusMCP — one MCP endpoint, every account" />
-<meta property="og:description" content="A local, open-source multi-account MCP broker. Switch identity without reconnecting, from any LLM." />
+<title>JanusMCP — Multi-account CLI for AI agents and MCP clients</title>
+<meta name="description" content="A local, open-source tool broker for AI agents. Discover schemas and call tools on demand from the CLI, or connect through MCP, while keeping every account and credential securely separated." />
+<meta property="og:title" content="JanusMCP — Multi-account CLI for AI agents and MCP clients" />
+<meta property="og:description" content="One credential broker. Every account. From the CLI or MCP." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://janusmcp.dev" />
 <meta name="twitter:card" content="summary_large_image" />
@@ -18,7 +18,7 @@
   "name": "JanusMCP",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "macOS, Windows, Linux",
-  "description": "Local, open-source multi-account MCP broker. Add credentials once and switch identity — the same service, many accounts — without reconnecting, from any LLM client.",
+  "description": "Local, open-source multi-account tool broker for AI agents. Discover schemas and call tools on demand from the CLI, or connect through MCP.",
   "url": "https://janusmcp.dev",
   "downloadUrl": "https://github.com/bayway/janusmcp",
   "license": "https://opensource.org/licenses/MIT",
@@ -32,11 +32,11 @@
   "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "What is JanusMCP?",
-      "acceptedAnswer": { "@type": "Answer", "text": "JanusMCP is a local, open-source Model Context Protocol (MCP) broker that lets you use the same service (Supabase, GitHub, Slack…) with multiple accounts behind one endpoint. You add your credentials once and switch identity with a tool call, without disconnecting and reconnecting." } },
+      "acceptedAnswer": { "@type": "Answer", "text": "JanusMCP is a local, open-source multi-account tool broker for AI agents. Agents can discover schemas and call tools on demand from the CLI, or connect through MCP, using the same secure credentials and account profiles." } },
     { "@type": "Question", "name": "How is it different from an MCP gateway?",
       "acceptedAnswer": { "@type": "Answer", "text": "MCP gateways aggregate different servers behind one endpoint. JanusMCP solves the orthogonal problem: many identities for the SAME service, without saturating the model's context, fully local. It is a credential-aware broker, not a flat aggregator." } },
     { "@type": "Question", "name": "Which LLM clients does JanusMCP work with?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Any MCP client, because it speaks standard MCP over stdio and Streamable HTTP: Claude Desktop and Claude Code, ChatGPT, Gemini, Cursor, and Copilot." } },
+      "acceptedAnswer": { "@type": "Answer", "text": "Any shell-based AI agent or MCP client, including Claude Code, Codex, Cursor, Claude Desktop, ChatGPT, Gemini, VS Code and Copilot." } },
     { "@type": "Question", "name": "Do agents have to use MCP, or can they use the CLI directly?",
       "acceptedAnswer": { "@type": "Answer", "text": "Both. Besides being an MCP server, JanusMCP has a code-execution mode: agents with shell access (Claude Code, Codex, Cursor…) run janusmcp tools, janusmcp schema and janusmcp call to discover and invoke tools on demand — no tool definitions loaded into context, same keychain credentials, same multi-account switching." } },
     { "@type": "Question", "name": "Where are my credentials stored?",
@@ -160,6 +160,7 @@
     </a>
     <div class="navlinks">
       <a href="#how">How it works</a>
+      <a href="/cli/">CLI</a>
       <a href="#different">Why</a>
       <a href="#install">Install</a>
       <a class="gh" href="https://github.com/bayway/janusmcp">★ GitHub</a>
@@ -172,13 +173,13 @@
   <div class="hero">
     <div>
       <span class="pill">Open-source · local-first · any LLM</span>
-      <h1>One MCP endpoint,<br><span class="grad">every account.</span></h1>
-      <p class="sub">A local broker that lets you add your credentials once and switch identity —
-        the same service, many accounts — <b>without reconnecting</b>. Works with Claude, ChatGPT,
-        Gemini, Cursor and any MCP client — over MCP <b>or straight from the CLI</b>.</p>
+      <h1>One credential broker.<br><span class="grad">Every account.</span></h1>
+      <p class="sub">A local multi-account tool broker for AI agents. Discover and call tools
+        on demand from the <b>CLI</b>, or connect through <b>MCP</b> — the same credentials,
+        profiles and secure local vault in both modes.</p>
       <div class="cta">
-        <a class="btn primary" href="#install">Get started</a>
-        <a class="btn ghost" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
+        <a class="btn primary" href="/cli/">Use from CLI</a>
+        <a class="btn ghost" href="#install">Connect over MCP</a>
       </div>
       <div class="chips">
         <span class="chip"><b>npm</b> @bayway/janusmcp</span>
@@ -220,7 +221,7 @@
       <div class="card"><span class="ico">🧩</span><h3>Any client</h3><p>Standard MCP over stdio and Streamable HTTP — Claude, ChatGPT, Gemini, Cursor, Copilot.</p></div>
       <div class="card"><span class="ico">🪶</span><h3>Context-safe</h3><p>Only the active account's tools are exposed — not N×tools — so the model stays focused.</p></div>
       <div class="card"><span class="ico">🗂️</span><h3>Profiles</h3><p>Activate a whole client's stack — Supabase + GitHub + Slack of Client A — with one call.</p></div>
-      <div class="card"><span class="ico">⌨️</span><h3>MCP <i>and</i> CLI</h3><p>Agents with shell access skip the MCP session: <code class="inl">janusmcp tools</code> / <code class="inl">schema</code> / <code class="inl">call</code> invoke tools on demand — zero definitions in context.</p></div>
+      <div class="card"><span class="ico">⌨️</span><h3>MCP <i>and</i> CLI</h3><p>Agents with shell access use <code class="inl">tools</code> / <code class="inl">schema</code> / <code class="inl">call</code> on demand — no bulk tool definitions loaded upfront.</p></div>
     </div>
   </section>
 
@@ -253,8 +254,8 @@
     </div>
     <ol class="steps">
       <li><b>Add accounts &amp; log in:</b> run <code class="inl">janusmcp ui</code> (local control panel) or <code class="inl">janusmcp add supabase</code>.</li>
-      <li><b>Connect a client:</b> <code class="inl">janusmcp install claude-desktop</code> (also: cursor, vscode, gemini, codex, claude-code).</li>
-      <li><b>Use it:</b> in chat call <code class="inl">janus_list_accounts</code>, then <code class="inl">janus_use_account</code> to switch identity on the fly.</li>
+      <li><b>Choose a mode:</b> use <code class="inl">janusmcp tools</code> from the shell, or run <code class="inl">janusmcp install claude-desktop</code> for MCP.</li>
+      <li><b>Switch safely:</b> <code class="inl">janusmcp use client_a</code> in the CLI, or <code class="inl">janus_use_account</code> in chat.</li>
     </ol>
     <p class="lead" style="margin-top:18px">Full command reference: <code class="inl">janusmcp help</code> · Docs &amp; source on
       <a href="https://github.com/bayway/janusmcp">GitHub</a>.</p>
@@ -264,9 +265,8 @@
     <h2>FAQ</h2>
     <div style="max-width:760px">
       <h3 style="margin:22px 0 4px;font-size:17px">What is JanusMCP?</h3>
-      <p class="lead">A local, open-source MCP broker that lets you use the same service (Supabase,
-        GitHub, Slack…) with multiple accounts behind one endpoint. Add credentials once and switch
-        identity with a tool call — no disconnect, no reconnect.</p>
+      <p class="lead">A local, open-source multi-account tool broker for AI agents. Use it directly
+        from the CLI or connect through MCP, with the same vault, profiles and account switching.</p>
       <h3 style="margin:22px 0 4px;font-size:17px">How is it different from an MCP gateway?</h3>
       <p class="lead">Gateways aggregate <i>different</i> servers behind one endpoint. JanusMCP solves
         the orthogonal problem: many identities for the <b>same</b> service, without saturating the
@@ -278,7 +278,7 @@
       <p class="lead">Both. Besides being an MCP server, JanusMCP has a code-execution mode: agents
         with shell access (Claude Code, Codex, Cursor…) run <code class="inl">janusmcp tools</code>,
         <code class="inl">janusmcp schema &lt;tool&gt;</code> and <code class="inl">janusmcp call &lt;tool&gt;</code>
-        to discover and invoke tools on demand — no tool definitions loaded into context, same
+        to discover and invoke tools on demand — no bulk tool definitions loaded upfront, same
         keychain credentials, same multi-account switching.</p>
       <h3 style="margin:22px 0 4px;font-size:17px">Where are my credentials stored?</h3>
       <p class="lead">In your OS keychain (macOS Keychain, Windows Credential Manager, or the Linux
@@ -292,8 +292,8 @@
   </section>
 
   <div class="band reveal">
-    <h2>One endpoint. Every account.</h2>
-    <p>Stop disconnecting and reconnecting. Add JanusMCP and switch identity with a single tool call.</p>
+    <h2>CLI on the surface. MCP under the hood.</h2>
+    <p>One credential broker for every account, whether your agent uses a shell or an MCP client.</p>
     <div class="cta" style="justify-content:center">
       <a class="btn primary" href="https://github.com/bayway/janusmcp">★ Star on GitHub</a>
       <a class="btn ghost" href="#install">Install</a>
@@ -304,6 +304,7 @@
     <div>MIT-licensed · built by <a href="https://github.com/bayway">Bayway</a> · listed on the
       <a href="https://registry.modelcontextprotocol.io/">official MCP Registry</a></div>
     <div style="margin-top:8px"><a href="https://github.com/bayway/janusmcp">GitHub</a> ·
+      <a href="/cli/">CLI guide</a> ·
       <a href="/privacy">Privacy</a> ·
       <a href="https://github.com/bayway/janusmcp/blob/main/SECURITY.md">Security</a></div>
   </footer>

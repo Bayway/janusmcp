@@ -13,7 +13,7 @@ connectors, so contributions of all sizes are welcome.
 
 ## Development
 
-The broker lives in [`go/`](go/). You need **Go 1.23+** and **Node 22+** (the integration
+The broker lives in [`go/`](go/). You need **Go 1.25+** and **Node 22+** (the integration
 tests spawn a Node mock upstream from [`spike/`](spike/)).
 
 ```bash
@@ -24,6 +24,12 @@ cd ../spike && npm install && cd ../go
 make test           # runs all Go tests (broker tests need node on PATH)
 ```
 
+Before opening a PR, also run the documentation check from the repository root:
+
+```bash
+python3 scripts/check-docs.py
+```
+
 The TypeScript spike in [`spike/`](spike/) is a verified reference of the intended
 behavior; when changing broker semantics, keep the two in sync or update the reference.
 
@@ -32,8 +38,25 @@ behavior; when changing broker semantics, keep the two in sync or update the ref
 - Keep PRs focused; describe the motivation and the user-facing effect.
 - Add or update tests for behavior changes (`go test ./...` must pass).
 - Run `go vet ./...` and `gofmt`.
+- Complete the compatibility, security, validation, and release sections in the PR template.
+- Update [`CHANGELOG.md`](CHANGELOG.md) for user-visible behavior.
 - By contributing you agree your work is licensed under the project's [MIT license](LICENSE).
 
-## Code of conduct
+## Architecture decisions
+
+Start with the [architecture overview](docs/architecture.md) and the
+[compatibility contract](docs/compatibility.md). A new ADR is required when a change:
+
+- changes a public CLI, MCP, configuration, state, or security contract;
+- introduces a new process, listener, persistence mechanism, or trust boundary;
+- selects one architectural approach over credible alternatives;
+- reverses or materially changes an accepted decision.
+
+Copy [`docs/adr/0000-template.md`](docs/adr/0000-template.md), assign the next number,
+and open it in the same PR as the implementation. Small fixes, internal refactors, tests,
+and documentation corrections do not need an ADR. Accepted ADRs are not rewritten to hide
+history; supersede them with a new record.
+
+## Community conduct
 
 Be kind and constructive. Assume good faith. We're here to make a useful tool together.

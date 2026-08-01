@@ -59,7 +59,7 @@ homebrew_casks:
       name: homebrew-janusmcp
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/bayway/janusmcp"
-    description: "Local multi-account MCP broker — one endpoint, every account."
+    description: "Multi-account tool broker for AI agents — CLI and MCP."
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
@@ -78,7 +78,7 @@ scoops:
       name: scoop-janusmcp
       token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
     homepage: "https://github.com/bayway/janusmcp"
-    description: "Local multi-account MCP broker."
+    description: "Multi-account tool broker for AI agents — CLI and MCP."
     license: MIT
 
 # --- Linux packages (.deb / .rpm / .apk attached to the release) ---
@@ -86,7 +86,7 @@ nfpms:
   - id: packages
     package_name: janusmcp
     homepage: "https://github.com/bayway/janusmcp"
-    description: "Local multi-account MCP broker — one endpoint, every account."
+    description: "Multi-account tool broker for AI agents — CLI and MCP."
     maintainer: "Massimiliano Fiori"
     license: MIT
     formats: [deb, rpm, apk]

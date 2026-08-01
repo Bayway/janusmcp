@@ -42,3 +42,44 @@ jobs:
 
       - name: Test
         run: go test ./... -count=1
+
+      - name: Race test
+        run: go test -race ./... -count=1
+
+  site:
+    name: validate static site metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate CLI page, metadata, JSON-LD, and sitemap
+        run: |
+          python - <<'PY'
+          import json, pathlib, re
+          root = pathlib.Path("site")
+          home = (root / "index.html").read_text()
+          cli = (root / "cli" / "index.html").read_text()
+          sitemap = (root / "sitemap.xml").read_text()
+          assert "JanusMCP — Multi-account CLI for AI agents and MCP clients" in home
+          assert 'href="/cli/"' in home
+          assert 'rel="canonical" href="https://janusmcp.dev/cli/"' in cli
+          assert "https://janusmcp.dev/cli/" in sitemap
+          for page in (home, cli):
+              blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.S)
+              assert blocks
+              for block in blocks:
+                  json.loads(block)
+          PY
+
+  documentation:
+    name: validate documentation contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate PR template and ADRs
+        run: python3 scripts/check-docs.py

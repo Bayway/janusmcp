@@ -2,7 +2,7 @@
   "name": "@bayway/janusmcp",
   "version": "0.1.2",
   "mcpName": "io.github.Bayway/janusmcp",
-  "description": "Local multi-account MCP broker — one endpoint, every account. Add credentials once, switch identity without reconnecting, from any LLM. Use it over MCP or straight from the CLI (code-execution mode).",
+  "description": "Multi-account tool broker for AI agents — use tools on demand from the CLI or connect through MCP, with credentials kept local.",
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -13,7 +13,12 @@
     "claude",
     "cli",
     "code-execution",
-    "agents"
+    "agents",
+    "ai-agents",
+    "agent-tools",
+    "tool-calling",
+    "shell",
+    "code-mode"
   ],
   "homepage": "https://github.com/bayway/janusmcp",
   "bugs": "https://github.com/bayway/janusmcp/issues",

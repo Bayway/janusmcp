@@ -98,3 +98,27 @@ These need external repos or per-distro PRs; add once you have traction:
 ```bash
 cd .. && goreleaser release --snapshot --clean   # builds everything locally, publishes nothing
 ```
+
+## CLI-first release checks
+
+The CLI-first work is released in two compatibility-preserving milestones:
+
+- `v0.4.0`: structured CLI output, timeout, stable exit codes, `use`, and public positioning.
+- `v0.5.0`: managed loopback daemon and transparent upstream-session reuse.
+
+Before `v0.4.0`, require green CI and then run:
+
+```bash
+(cd go && go test ./... -count=1)
+goreleaser check
+
+janusmcp tools
+janusmcp call ping --json --timeout 30s
+
+cd npm && npm pack --dry-run
+```
+
+After publishing, install from npm and the platform-native package rather than using
+the workspace binary. Confirm `version`, `tools`, and `call --json`; then verify the live
+`/cli/` page, npm description, GitHub description/topics, and sitemap. The `v0.5.0` PR adds
+its daemon lifecycle and reuse checks before that tag is created.

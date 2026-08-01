@@ -2,8 +2,8 @@
 
 # JanusMCP
 
-**One MCP endpoint, every account.**
-Add your credentials once, switch identity without reconnecting — from any LLM.
+**One credential broker. Every account. From the CLI or MCP.**
+Multi-account tool access for AI agents, with credentials kept local.
 
 [![CI](https://github.com/bayway/janusmcp/actions/workflows/ci.yml/badge.svg)](https://github.com/bayway/janusmcp/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/bayway/janusmcp?sort=semver)](https://github.com/bayway/janusmcp/releases)
@@ -32,15 +32,16 @@ credentials.** JanusMCP fills that gap.
 
 ## What it does
 
-JanusMCP is a **local broker** that sits between your LLM client and the real MCP servers:
+JanusMCP is a **local multi-account tool broker** for AI agents. It can be used directly
+from the CLI or as an MCP server in front of the real upstream servers:
 
 - **Add N accounts once** for the same service and keep them all available.
 - **Switch identity without reconnecting** — no re-login, no fiddling with config.
 - **Works with any LLM client** — it just speaks standard MCP (stdio + Streamable HTTP).
 - **Works without an MCP session too** — agents can drive it **directly from the CLI**
-  ([code-execution mode](#code-execution-mode--tools-from-the-terminal-zero-context-cost)):
-  `janusmcp tools` / `schema` / `call` invoke tools on demand, with zero tool
-  definitions loaded into context.
+  ([code-execution mode](#code-execution-mode--context-efficient-tools-from-the-terminal)):
+  `janusmcp tools` / `schema` / `call` invoke tools on demand, with no bulk tool
+  definitions loaded upfront.
 - **Runs locally** — your machine, your keychain, your control.
 - **Keeps the context clean** — it exposes only the *active* account's tools, not N×tools.
 
@@ -55,13 +56,39 @@ LLM client ─MCP─▶│   JanusMCP broker           │─▶ ├─ Supabase
 You drive it with three control tools that appear in any client:
 `janus_list_accounts`, `janus_use_account`, `janus_whoami`.
 
+## Choose your mode
+
+### Use from the CLI — Claude Code, Codex, Cursor, scripts
+
+```bash
+npm install -g @bayway/janusmcp
+janusmcp tools
+janusmcp schema list_tables
+janusmcp call list_tables --args '{"schemas":["public"]}' --json --timeout 30s
+```
+
+The CLI discovers schemas only when needed, accepts JSON through `--args` or stdin,
+supports explicit accounts/profiles, and provides stable exit codes. See the
+[CLI guide](https://janusmcp.dev/cli/) and [copyable agent instructions](docs/agent-cli.md).
+
+### Connect over MCP — desktop and chat clients
+
+```bash
+npx @bayway/janusmcp serve
+# or configure a supported client automatically:
+janusmcp install claude-desktop
+```
+
+Both modes share the same config, OS-keychain vault, OAuth tokens and persisted active
+account.
+
 ## Install
 
 Once released, install via your favorite channel (all published automatically on each
 tag — see [RELEASING.md](RELEASING.md)):
 
 ```bash
-npx @bayway/janusmcp serve                                   # npm (works inside MCP/npx setups)
+npx @bayway/janusmcp serve                       # npm / MCP mode
 brew install bayway/janusmcp/janusmcp     # Homebrew (macOS/Linux)
 scoop install janusmcp                               # Windows
 docker run --rm -p 7332:7332 ghcr.io/bayway/janusmcp:latest
@@ -123,9 +150,10 @@ Run `janusmcp help` for the full reference. The essentials:
 | Command | What it does |
 |---|---|
 | `janusmcp serve` | Run the broker (default). Transports via env: `JANUS_TRANSPORT=stdio\|http\|both`, `JANUS_HTTP_HOST`, `JANUS_HTTP_PORT`. |
-| `janusmcp tools [selector]` | Code-execution mode: compact tool list for the active (or given) account/profile. `--json` for full definitions. |
-| `janusmcp schema <tool>` | Full JSON definition (input schema) of one tool. `--account <id\|profile>` to disambiguate. |
-| `janusmcp call <tool>` | Invoke a tool and print its result. `--account`, `--args '<json>'` (or JSON on stdin). |
+| `janusmcp tools [selector]` | Compact tool list for the active (or given) account/profile. `--json` for full definitions; optional `--timeout`. |
+| `janusmcp schema <tool>` | Full JSON definition of one tool. `--account <id\|profile>` disambiguates; optional `--timeout`. |
+| `janusmcp call <tool>` | Invoke a tool. Supports `--account`, `--args`, stdin, stable `--json`, and optional `--timeout`. |
+| `janusmcp use <account\|profile>` | Persist the active selector for future CLI commands and new MCP sessions. |
 | `janusmcp ui` | Open the local control panel — add accounts, log in, set secrets. |
 | `janusmcp add <template> [id]` | Add an account from a template (`janusmcp catalog` lists them). |
 | `janusmcp catalog` | List the built-in account templates. |
@@ -180,7 +208,7 @@ accounts are namespaced (`<account>_<tool>`).
 active one — e.g. `{ "account_id": "client_b", "tool": "list_tables" }`. Omit `tool`
 to list that account's available tools first.
 
-### Code-execution mode — tools from the terminal, zero context cost
+### Code-execution mode — context-efficient tools from the terminal
 
 Loading every MCP tool definition into an LLM context is expensive. In code-execution
 mode an agent (or you) invokes tools **on demand from the shell** instead — à la
@@ -194,6 +222,7 @@ janusmcp schema list_tables           # full input schema of ONE tool, only when
 janusmcp call list_tables --args '{"schemas":["public"]}'
 janusmcp call ping --account azienda_b          # cross-account without switching
 echo '{"sql":"select 1"}' | janusmcp call db_query   # JSON args via stdin too
+janusmcp call ping --json --timeout 30s         # stable envelope for agents
 ```
 
 `call` prints the tool's text content to stdout and exits non-zero on a tool error, so
@@ -219,7 +248,7 @@ and the persisted active account, so you can mix them freely.
 | **Secure vault** | OS keychain (macOS/Windows/Linux) + encrypted-file fallback; secrets as `vault:<name>` |
 | **OAuth loopback** | `janusmcp login` (PKCE), tokens stored in the vault, auto-refresh, `oauth:<name>` |
 | **Context-safe** | only the active account's tools are exposed; switching emits `tools/list_changed` |
-| **MCP *and* CLI** | same broker as an MCP server or via `janusmcp tools` / `schema` / `call` — agents invoke tools on demand, zero definitions in context |
+| **MCP *and* CLI** | same broker as an MCP server or via `janusmcp tools` / `schema` / `call` — no bulk tool definitions loaded upfront |
 
 ## How it's different
 
@@ -331,6 +360,17 @@ See [`design-broker-mcp-multi-account.md`](design-broker-mcp-multi-account.md) f
 - [`go/`](go/) — the broker (Go). This is the real implementation. **[Build & docs →](go/README.md)**
 - [`spike/`](spike/) — the original TypeScript spike, kept as a verified reference of behavior.
 - [`design-broker-mcp-multi-account.md`](design-broker-mcp-multi-account.md) — architecture & rationale.
+- [`docs/`](docs/) — current architecture, compatibility contract, testing, ADRs, and operations.
+
+## Project documentation
+
+- [Documentation index](docs/README.md)
+- [Architecture](docs/architecture.md)
+- [Compatibility contract](docs/compatibility.md)
+- [Architecture Decision Records](docs/adr/README.md)
+- [Testing](docs/testing.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md) and [security policy](SECURITY.md)
 
 ## Privacy Policy
 

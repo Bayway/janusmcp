@@ -7,8 +7,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { randomUUID } from "node:crypto";
 
 const ACCOUNT = process.env.MOCK_ACCOUNT ?? "unknown";
+const INSTANCE_ID = `${ACCOUNT}:${process.pid}:${randomUUID()}`;
 
 const server = new Server(
   { name: `mock-upstream:${ACCOUNT}`, version: "0.0.1" },
@@ -31,6 +33,42 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: "instance_id",
+    description: "Reports the mock process identity so tests can verify connection reuse.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "structured_result",
+    description: "Returns both text and structured MCP content.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    outputSchema: {
+      type: "object",
+      properties: { account: { type: "string" }, instanceId: { type: "string" } },
+      required: ["account", "instanceId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "multi_content",
+    description: "Returns multiple text content blocks.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "fail",
+    description: "Returns a deterministic MCP tool error.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "delay",
+    description: "Waits for the requested number of milliseconds before responding.",
+    inputSchema: {
+      type: "object",
+      properties: { ms: { type: "integer", minimum: 0, maximum: 30000 } },
+      required: ["ms"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
@@ -49,6 +87,32 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         },
       ],
     };
+  }
+  if (name === "instance_id") {
+    return { content: [{ type: "text", text: INSTANCE_ID }] };
+  }
+  if (name === "structured_result") {
+    const structuredContent = { account: ACCOUNT, instanceId: INSTANCE_ID };
+    return {
+      content: [{ type: "text", text: JSON.stringify(structuredContent) }],
+      structuredContent,
+    };
+  }
+  if (name === "multi_content") {
+    return {
+      content: [
+        { type: "text", text: `first from ${ACCOUNT}` },
+        { type: "text", text: `second from ${ACCOUNT}` },
+      ],
+    };
+  }
+  if (name === "fail") {
+    return { isError: true, content: [{ type: "text", text: `forced failure from ${ACCOUNT}` }] };
+  }
+  if (name === "delay") {
+    const ms = Number(args.ms ?? 0);
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    return { content: [{ type: "text", text: `waited ${ms}ms on ${ACCOUNT}` }] };
   }
   return { isError: true, content: [{ type: "text", text: `unknown tool: ${name}` }] };
 });

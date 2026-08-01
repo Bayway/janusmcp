@@ -1,4 +1,4 @@
-// Command janusmcp is the local multi-account MCP broker.
+// Command janusmcp is the local multi-account tool broker for CLI and MCP agents.
 //
 // Subcommands (run `janusmcp help` for the full reference):
 //
@@ -6,6 +6,7 @@
 //	janusmcp tools [selector]      # code-exec mode: compact tool list
 //	janusmcp schema <tool>         # code-exec mode: one tool's full schema
 //	janusmcp call <tool> [flags]   # code-exec mode: invoke a tool
+//	janusmcp use <selector>        # persist the active account/profile
 //	janusmcp ui                    # local control panel
 //	janusmcp add <template> [id]   # add an account from a template
 //	janusmcp catalog               # list account templates
@@ -103,6 +104,8 @@ func main() {
 		err = runSchema(os.Args[2:])
 	case "call":
 		err = runCall(os.Args[2:])
+	case "use":
+		err = runUse(os.Args[2:])
 	case "vault":
 		err = runVault(os.Args[2:])
 	case "login":
@@ -133,14 +136,13 @@ func main() {
 		os.Exit(2)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "[janusmcp] error: %v\n", err)
-		os.Exit(1)
+		os.Exit(renderCLIError(os.Stderr, err))
 	}
 }
 
 // printUsage writes the full command reference. Kept in sync with the README.
 func printUsage(w io.Writer) {
-	fmt.Fprint(w, `JanusMCP — one MCP endpoint, every account.
+	fmt.Fprint(w, `JanusMCP — one credential broker, every account, from the CLI or MCP.
 
 Usage:
   janusmcp <command> [args]
@@ -149,12 +151,12 @@ Commands:
   serve                      Run the broker (default if no command given).
                              Transports via env: JANUS_TRANSPORT=stdio|http|both
                              (default stdio), JANUS_HTTP_HOST, JANUS_HTTP_PORT.
-  tools [selector] [--json]  Code-execution mode: compact tool list for the active
-                             account/profile (or the given one) — no MCP client needed.
+  tools [selector] [--json]  Compact tool list for the active account/profile.
   schema <tool> [--account]  Full JSON definition (input schema) of one tool.
-  call <tool> [--account <id|profile>] [--args '<json>']
+  call <tool> [--account <id|profile>] [--args '<json>'] [--json]
                              Invoke a tool and print its result; JSON args also
-                             accepted on stdin. Exits non-zero on tool error.
+                             accepted on stdin. --json emits a stable envelope.
+  use <account|profile>      Persist the active selector for later CLI/MCP use.
   ui                         Open the local control panel (add accounts, log in).
   add <template> [id]        Add an account from a template (see: catalog).
   catalog                    List the built-in account templates.
@@ -168,6 +170,13 @@ Commands:
   uninstall <client>         Remove JanusMCP from an LLM client's config.
   version                    Print the version.
   help                       Show this help.
+
+CLI agent flags:
+  --timeout 30s|2m           Optional timeout (or JANUS_CLI_TIMEOUT).
+
+Exit codes:
+  0 success · 1 generic · 2 usage/input · 3 config/selector · 4 auth
+  5 upstream/protocol · 6 tool error · 124 timeout · 130 interrupted
 
 Clients (install/uninstall):
   claude-desktop | claude-code | cursor | vscode | gemini | codex | chatgpt | print
@@ -183,6 +192,9 @@ Docs: https://github.com/bayway/janusmcp
 func buildVault() (vault.Vault, error) {
 	if strings.EqualFold(os.Getenv("JANUS_VAULT"), "file") {
 		dir := envOr("JANUS_VAULT_DIR", ".")
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, fmt.Errorf("create file-vault directory: %w", err)
+		}
 		return vault.NewFile(filepath.Join(dir, "janusmcp-vault.enc"), filepath.Join(dir, "janusmcp-vault.key"))
 	}
 	return vault.NewKeyring(), nil
