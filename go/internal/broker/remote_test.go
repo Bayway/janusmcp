@@ -96,3 +96,40 @@ func TestSeedNoPreregisteredClient(t *testing.T) {
 		t.Fatalf("expected empty state for DCR path, got %+v", s)
 	}
 }
+
+// RFC 9207: the "iss" authorization-response parameter is what lets a client
+// notice that a code came from a different authorization server than the one it
+// started with. 2026-07-28 requires validating it.
+func TestValidateIssuerResponse(t *testing.T) {
+	const want = "https://as.example.com"
+
+	cases := []struct {
+		name      string
+		got       string
+		expect    string
+		supported bool
+		wantErr   bool
+	}{
+		{name: "supported and matching", got: want, expect: want, supported: true},
+		{name: "supported, trailing slash still matches", got: want + "/", expect: want, supported: true},
+		{name: "supported but missing", got: "", expect: want, supported: true, wantErr: true},
+		{name: "supported but mismatched", got: "https://evil.example.com", expect: want, supported: true, wantErr: true},
+		{name: "unsupported and absent", got: "", expect: want, supported: false},
+		{name: "unsupported but present", got: want, expect: want, supported: false, wantErr: true},
+		// A vault entry written before issuer tracking has no expected issuer.
+		// Enforcing anything there would break a login that used to work.
+		{name: "unknown issuer skips validation", got: "https://whatever.example.com", expect: "", supported: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateIssuerResponse(tc.got, tc.expect, tc.supported)
+			if tc.wantErr && err == nil {
+				t.Fatalf("expected an error, got none")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}

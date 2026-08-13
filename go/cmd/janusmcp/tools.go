@@ -294,6 +294,16 @@ func runCall(args []string) error {
 	if err != nil {
 		return jsonIf(normalizeContextError(ctx, classifyUpstreamError("upstream_protocol", err)), *asJSON)
 	}
+	// Under MCP 2026-07-28 a tool may answer with input_required instead of a
+	// result, expecting the caller to collect input and retry. The CLI is
+	// non-interactive and cannot, so report it as its own outcome rather than
+	// pretending the call produced an empty result.
+	if res.NeedsInput() {
+		err := fmt.Errorf(
+			"tool %q needs interactive input (account %s): run it from an MCP client that can answer elicitation requests",
+			name, id)
+		return jsonIf(cliErr(exitInputRequired, "input_required", err), *asJSON)
+	}
 	if *asJSON {
 		envelope := map[string]any{
 			"ok":      !res.IsError,
