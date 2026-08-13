@@ -81,11 +81,47 @@ func (s *Session) localActiveEmpty() bool {
 // NewSession builds a broker MCP server for one connection and registers tools.
 func NewSession(ctx context.Context, core *Core, id string) *Session {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "janusmcp", Version: "0.1.0"}, nil)
+	srv.AddReceivingMiddleware(privateCacheScope)
 	s := &Session{ID: id, core: core, server: srv}
 	s.registerControlTools()
 	_ = s.applyActiveTools(ctx) // best-effort: a dead upstream shouldn't kill the session
 	core.Registry.Add(s)
 	return s
+}
+
+// privateCacheScope marks every cacheable list result as private.
+//
+// The SDK defaults cacheScope to "public" (2026-07-28 adds ttlMs/cacheScope
+// hints to list responses), which is a false claim for a broker: what
+// tools/list returns depends on the caller's active account, so no intermediary
+// may share it. ttlMs stays 0 — "immediately stale" — because a switch can
+// change the answer at any moment.
+func privateCacheScope(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		res, err := next(ctx, method, req)
+		if err != nil {
+			return res, err
+		}
+		// The Cacheable fields are set inside the SDK's own handlers, and
+		// CacheableResult exposes getters only, so the concrete types are the
+		// only seam available.
+		switch r := res.(type) {
+		case *mcp.ListToolsResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.ListPromptsResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.ListResourcesResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.ListResourceTemplatesResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.DiscoverResult:
+			// Capabilities depend on which control tools are registered
+			// (janus_login only with a vault, janus_use_profile only with
+			// profiles), so discovery is caller-specific too.
+			r.CacheScope, r.TTLMs = "private", 0
+		}
+		return res, nil
+	}
 }
 
 func emptyObjectSchema() *jsonschema.Schema {
@@ -347,7 +383,7 @@ func (s *Session) handleWithAccount(ctx context.Context, req *mcp.CallToolReques
 	if len(raw) == 0 || string(raw) == "null" {
 		raw = json.RawMessage("{}")
 	}
-	return cs.CallTool(ctx, &mcp.CallToolParams{Name: in.Tool, Arguments: raw})
+	return callUpstream(ctx, cs, in.AccountID, in.Tool, raw, req.Params.Meta, req.Params.InputResponses, req.Params.RequestState)
 }
 
 func (s *Session) handleLogin(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -404,8 +440,56 @@ func (s *Session) proxyHandler() mcp.ToolHandler {
 		if len(raw) == 0 || string(raw) == "null" {
 			raw = json.RawMessage("{}")
 		}
-		return cs.CallTool(ctx, &mcp.CallToolParams{Name: tool, Arguments: raw})
+		return callUpstream(ctx, cs, account, tool, raw, req.Params.Meta, req.Params.InputResponses, req.Params.RequestState)
 	}
+}
+
+// callUpstream forwards one tool call and relays a multi round-trip exchange
+// (SEP-2322) in both directions.
+//
+// The broker is a proxy, so it must not answer the upstream's input requests
+// itself: the upstream client is built with the SDK's automatic MRTR middleware
+// disabled (see UpstreamManager.Session), which surfaces `input_required` here
+// so it can be handed to the real client instead.
+func callUpstream(
+	ctx context.Context,
+	cs *mcp.ClientSession,
+	account, tool string,
+	args json.RawMessage,
+	meta mcp.Meta,
+	inputResponses mcp.InputResponseMap,
+	requestState string,
+) (*mcp.CallToolResult, error) {
+	upstreamState, err := unwrapRequestState(requestState, account, tool)
+	if err != nil {
+		// A stale or misrouted retry is the model's problem to recover from, so
+		// report it as a tool error it can read rather than a protocol error.
+		return &mcp.CallToolResult{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}},
+		}, nil
+	}
+
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:           tool,
+		Arguments:      args,
+		Meta:           meta,
+		InputResponses: inputResponses,
+		RequestState:   upstreamState,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// A nil InputRequests means a normal result; a non-nil but empty one means
+	// the upstream is load-shedding. Both must survive, so test for nil rather
+	// than for length.
+	if res.InputRequests == nil {
+		return res, nil
+	}
+	out := *res // copy: carries the unexported result type across untouched
+	out.RequestState = wrapRequestState(account, tool, res.RequestState)
+	return &out, nil
 }
 
 // applyActiveTools swaps the registered upstream tools to match the active account.

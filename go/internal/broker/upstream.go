@@ -71,7 +71,21 @@ func (m *UpstreamManager) Session(ctx context.Context, id string) (*mcp.ClientSe
 	if err != nil {
 		return nil, err
 	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "janusmcp", Version: "0.1.0"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "janusmcp", Version: "0.1.0"}, &mcp.ClientOptions{
+		// The broker is a proxy, not the end user. Left enabled, the SDK's
+		// multi round-trip middleware would try to answer an upstream's input
+		// requests here — and with no elicitation handler behind it, every
+		// elicitation-capable tool would simply fail. Disabling it surfaces
+		// `input_required` to callUpstream, which relays it to the real client.
+		MultiRoundTrip: &mcp.MultiRoundTripOptions{Disabled: true},
+		// With nil capabilities the SDK advertises roots.listChanged, which the
+		// broker does not implement and which SEP-2577 deprecates. An explicit
+		// empty value drops the claim on the 2026-07-28 discovery path; on the
+		// legacy initialize path `"roots":{}` still ships, because
+		// ClientCapabilities.Roots is a non-pointer struct and encoding/json
+		// ignores omitempty for structs.
+		Capabilities: &mcp.ClientCapabilities{},
+	})
 	cs, err := client.Connect(ctx, transport, nil)
 	if err != nil {
 		return nil, fmt.Errorf("connect upstream %s: %w", id, err)
