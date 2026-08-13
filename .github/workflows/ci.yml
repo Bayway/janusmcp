@@ -133,11 +133,15 @@ jobs:
           export JANUS_VAULT_DIR="$RUNNER_TEMP/janusmcp-vault"
           direct_a="$($BIN call instance_id --direct)"
           direct_b="$($BIN call instance_id --direct)"
+          # Non-empty first: two failed calls both produce "" and would otherwise
+          # satisfy the equality check below without ever reaching an upstream.
+          test -n "$direct_a"
           test "$direct_a" != "$direct_b"
           "$BIN" daemon start --port 17432
           trap '"$BIN" daemon stop || true' EXIT
           warm_a="$($BIN call instance_id --daemon)"
           warm_b="$($BIN call instance_id --daemon)"
+          test -n "$warm_a"
           test "$warm_a" = "$warm_b"
           "$BIN" daemon status --json
           "$BIN" daemon stop
@@ -172,11 +176,15 @@ jobs:
           $env:JANUS_VAULT_DIR = Join-Path $env:RUNNER_TEMP "janusmcp-vault"
           $directA = (& $bin call instance_id --direct | Out-String).Trim()
           $directB = (& $bin call instance_id --direct | Out-String).Trim()
+          # Non-empty first: two failed calls both produce "" and would otherwise
+          # satisfy the comparisons below without ever reaching an upstream.
+          if (-not $directA) { throw "direct call produced no output" }
           if ($directA -eq $directB) { throw "direct mode unexpectedly reused an upstream" }
           & $bin daemon start --port 17432
           try {
             $warmA = (& $bin call instance_id --daemon | Out-String).Trim()
             $warmB = (& $bin call instance_id --daemon | Out-String).Trim()
+            if (-not $warmA) { throw "daemon call produced no output" }
             if ($warmA -ne $warmB) { throw "daemon mode did not reuse the upstream" }
             & $bin daemon status --json
           } finally {

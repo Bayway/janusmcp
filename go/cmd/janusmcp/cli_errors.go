@@ -16,8 +16,12 @@ const (
 	exitAuth      = 4
 	exitUpstream  = 5
 	exitTool      = 6
-	exitTimeout   = 124
-	exitInterrupt = 130
+	// exitInputRequired marks a tool that answered with an MCP input_required
+	// result. It is not a failure of the call, so it gets its own code rather
+	// than reusing exitTool.
+	exitInputRequired = 7
+	exitTimeout       = 124
+	exitInterrupt     = 130
 )
 
 // commandError carries the stable process exit code and machine-readable error

@@ -31,6 +31,15 @@ type remoteAuthState struct {
 	TokenURL     string        `json:"token_url,omitempty"`
 	Scopes       []string      `json:"scopes,omitempty"`
 	Token        *oauth2.Token `json:"token,omitempty"`
+
+	// Issuer records which authorization server minted ClientID, so credentials
+	// are never replayed against a different one. Empty means the entry predates
+	// issuer tracking, which disables validation rather than breaking a login
+	// that used to work.
+	Issuer string `json:"issuer,omitempty"`
+	// IssParamSupported mirrors the authorization server's
+	// authorization_response_iss_parameter_supported metadata (RFC 9207).
+	IssParamSupported bool `json:"iss_param_supported,omitempty"`
 }
 
 // remoteOAuthHandler implements the SDK's auth.OAuthHandler interface
@@ -169,6 +178,15 @@ func (h *remoteOAuthHandler) Authorize(ctx context.Context, _ *http.Request, _ *
 			return err
 		}
 		s.AuthURL, s.TokenURL = meta.AuthorizationEndpoint, meta.TokenEndpoint
+		// A client registered with one authorization server must never be reused
+		// against another: 2026-07-28 binds credentials to their issuer.
+		if s.Issuer != "" && !sameIssuer(s.Issuer, meta.Issuer) {
+			return fmt.Errorf(
+				"%s: authorization server changed from %q to %q; the stored client credentials are not valid there",
+				h.resource, s.Issuer, meta.Issuer)
+		}
+		s.Issuer = meta.Issuer
+		s.IssParamSupported = meta.AuthorizationResponseIssParameterSupported
 		if len(s.Scopes) == 0 {
 			s.Scopes = meta.ScopesSupported
 		}
@@ -206,6 +224,9 @@ func (h *remoteOAuthHandler) Authorize(ctx context.Context, _ *http.Request, _ *
 	}
 	if res.State != state {
 		return fmt.Errorf("oauth state mismatch (possible CSRF)")
+	}
+	if err := validateIssuerResponse(res.Iss, s.Issuer, s.IssParamSupported); err != nil {
+		return err
 	}
 	tok, err := cfg.Exchange(ctx, res.Code, oauth2.VerifierOption(verifier))
 	if err != nil {
@@ -354,6 +375,41 @@ func (p *persistingTokenSource) Token() (*oauth2.Token, error) {
 	return tok, nil
 }
 
+// validateIssuerResponse checks the "iss" authorization-response parameter
+// (RFC 9207), which closes the authorization-server mix-up attack: without it a
+// malicious server can hand back a code minted elsewhere.
+//
+// The SDK implements this but does not export it, so it is reimplemented here.
+//
+// Validation is skipped when the stored issuer is unknown, which means the vault
+// entry predates issuer tracking. Enforcing the "must be absent" rule on those
+// would break logins that worked before the upgrade; they re-enter validation
+// once the metadata has been discovered again.
+func validateIssuerResponse(got, want string, supported bool) error {
+	if want == "" {
+		return nil
+	}
+	if !supported {
+		if got != "" {
+			return fmt.Errorf("authorization server returned an iss parameter (%q) but does not declare support for it", got)
+		}
+		return nil
+	}
+	if got == "" {
+		return fmt.Errorf("authorization server declares iss support (RFC 9207) but omitted it from the response")
+	}
+	if !sameIssuer(got, want) {
+		return fmt.Errorf("issuer mismatch: response came from %q, expected %q", got, want)
+	}
+	return nil
+}
+
+// sameIssuer compares issuer identifiers, ignoring a trailing slash — issuer
+// URLs are commonly written both ways.
+func sameIssuer(a, b string) bool {
+	return strings.TrimSuffix(a, "/") == strings.TrimSuffix(b, "/")
+}
+
 // captureAuthCode opens authURL in the browser and waits for the authorization
 // server to redirect back to our loopback listener, returning code + state.
 func captureAuthCode(ctx context.Context, ln net.Listener, authURL string) (*auth.AuthorizationResult, error) {
@@ -367,7 +423,9 @@ func captureAuthCode(ctx context.Context, ln net.Listener, authURL string) (*aut
 			http.Error(w, "authorization failed", http.StatusBadRequest)
 			return
 		}
-		resCh <- &auth.AuthorizationResult{Code: q.Get("code"), State: q.Get("state")}
+		// iss (RFC 9207) lets the client detect an authorization-server mix-up
+		// before redeeming the code; 2026-07-28 requires validating it.
+		resCh <- &auth.AuthorizationResult{Code: q.Get("code"), State: q.Get("state"), Iss: q.Get("iss")}
 		w.Header().Set("content-type", "text/html")
 		_, _ = w.Write([]byte("<h3>Account collegato. Puoi chiudere questa finestra.</h3>"))
 	})}

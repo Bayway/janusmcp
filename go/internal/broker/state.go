@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/bayway/janusmcp/internal/atomicfile"
 	"github.com/bayway/janusmcp/internal/config"
@@ -77,20 +78,41 @@ func (s *BrokerState) SetGlobal(id string) error {
 	return nil
 }
 
+// unconnectedGrace is how long a registered session may go without ever having
+// carried an MCP session before it is treated as abandoned. The HTTP handler
+// registers a session before the transport connects, so a brand-new entry is
+// legitimately empty for a moment.
+const unconnectedGrace = 2 * time.Minute
+
 // SessionRegistry tracks live sessions so a global switch can re-apply tools to each.
+//
+// Entries are pruned by liveness rather than by an explicit close hook, because
+// the SDK exposes no session-close callback: neither ServerOptions nor
+// StreamableHTTPOptions offers one. Each broker session owns exactly one
+// mcp.Server, so Server.Sessions() answers "is anyone still connected to this?".
 type SessionRegistry struct {
 	mu       sync.Mutex
-	sessions map[string]*Session
+	sessions map[string]*regEntry
+}
+
+// regEntry remembers enough to tell "closed" apart from "not connected yet".
+type regEntry struct {
+	session *Session
+	// sawConnection latches once the entry has been observed with a live MCP
+	// session; only then does emptiness mean the peer went away.
+	sawConnection bool
+	registered    time.Time
 }
 
 func NewSessionRegistry() *SessionRegistry {
-	return &SessionRegistry{sessions: map[string]*Session{}}
+	return &SessionRegistry{sessions: map[string]*regEntry{}}
 }
 
 func (r *SessionRegistry) Add(s *Session) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.sessions[s.ID] = s
+	r.sessions[s.ID] = &regEntry{session: s, registered: time.Now()}
+	r.prune()
 }
 
 func (r *SessionRegistry) Remove(id string) {
@@ -99,14 +121,46 @@ func (r *SessionRegistry) Remove(id string) {
 	delete(r.sessions, id)
 }
 
+// Len reports how many sessions are currently tracked, after pruning.
+func (r *SessionRegistry) Len() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.prune()
+	return len(r.sessions)
+}
+
 func (r *SessionRegistry) Each(fn func(*Session)) {
 	r.mu.Lock()
+	r.prune()
 	list := make([]*Session, 0, len(r.sessions))
-	for _, s := range r.sessions {
-		list = append(list, s)
+	for _, e := range r.sessions {
+		list = append(list, e.session)
 	}
 	r.mu.Unlock()
 	for _, s := range list {
 		fn(s)
 	}
+}
+
+// prune drops sessions whose peer has gone. Callers must hold r.mu.
+func (r *SessionRegistry) prune() {
+	for id, e := range r.sessions {
+		if e.session.persistent {
+			continue // stdio, and the shared stateless server: alive for the process
+		}
+		if hasLiveSession(e.session) {
+			e.sawConnection = true
+			continue
+		}
+		if e.sawConnection || time.Since(e.registered) > unconnectedGrace {
+			delete(r.sessions, id)
+		}
+	}
+}
+
+func hasLiveSession(s *Session) bool {
+	for range s.server.Sessions() {
+		return true
+	}
+	return false
 }

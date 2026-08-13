@@ -9,9 +9,22 @@ and optional daemon evolve.
 - Existing stdio and Streamable HTTP entrypoints continue to use standard MCP semantics.
 - Upstream tool names, descriptions, schemas, content, structured content, and `isError` values
   are forwarded without reinterpretation except documented profile collision namespacing.
+- Multi round-trip requests are relayed, not absorbed: an upstream's `inputRequests` reach the
+  client, and the client's `inputResponses` reach the upstream. The `requestState` in between is
+  the broker's own signed value, bound to the account and tool it was minted for; a retry that
+  does not match the route resolved for the call is refused. A `requestState` without the
+  broker's envelope is passed through unchanged.
+- List results are advertised as `cacheScope: private`, because what the broker exposes depends
+  on the caller's active account.
 - The `janus_*` control tools remain additive broker tools. Adding an optional field to a control
   tool is compatible; removing or renaming a tool or required field is not.
-- Account/profile switching continues to respect `global`, `session`, and `locked` binding modes.
+- Account/profile switching continues to respect `global`, `session`, and `locked` binding modes,
+  wherever a session exists to bind to. MCP 2026-07-28 removed sessions, so on that transport a
+  `session` scope is refused with an actionable error rather than silently promoted to `global`;
+  `janus_with_account` and `global` remain available. stdio and pre-2026-07-28 HTTP are unaffected.
+- Streamable HTTP dispatches on the `Mcp-Protocol-Version` header: 2026-07-28 and later are served
+  by a stateless handler, everything else by the existing session-based one, whose behaviour is
+  pinned by a raw-HTTP regression test. `JANUS_HTTP_PROTOCOL=legacy` disables the stateless branch.
 - The direct CLI and daemon must not change what an external MCP client sees from ordinary
   `janusmcp serve`.
 
@@ -23,7 +36,9 @@ and optional daemon evolve.
   `structuredContent` when supplied upstream.
 - Operational JSON errors use `{"ok":false,"error":{"code":"…","message":"…"}}` on stderr.
   MCP tool errors retain upstream content and exit with code 6.
-- Exit codes, once assigned, are not reused for a different class of failure.
+- Exit codes, once assigned, are not reused for a different class of failure. Exit code 7 means
+  the tool asked for interactive input the CLI cannot supply; it is not a tool error (6) and
+  retrying from the shell will not change the outcome.
 - Timeout remains opt-in. A flag overrides `JANUS_CLI_TIMEOUT`.
 
 ## Configuration and state

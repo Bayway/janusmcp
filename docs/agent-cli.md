@@ -17,7 +17,9 @@ Use JanusMCP from the shell when a task needs an external service.
 5. Supply arguments with `--args '<json-object>'` or pipe a JSON object on stdin.
 6. Never invent tool names or arguments; return to `tools` and `schema` when uncertain.
 7. Treat every non-zero exit code as a failure and inspect the JSON error or stderr.
-8. Do not expose vault values, OAuth tokens, config secrets, or daemon metadata.
+8. Exit code 7 means the tool wants interactive input: it is not a failed call, and
+   retrying it from the shell will not help. Use an MCP client instead.
+9. Do not expose vault values, OAuth tokens, config secrets, or daemon metadata.
 ```
 
 ## Account safety

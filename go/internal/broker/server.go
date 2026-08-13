@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"net/http"
 	"sync"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -32,6 +31,8 @@ type Session struct {
 	ID   string
 	core *Core
 
+	persistent         bool // stdio and the shared stateless server outlive any one connection
+	stateless          bool // served over the sessionless 2026-07-28 transport
 	mu                 sync.Mutex
 	localActive        string // "" → follow the global active account/profile
 	registeredUpstream []string
@@ -81,11 +82,47 @@ func (s *Session) localActiveEmpty() bool {
 // NewSession builds a broker MCP server for one connection and registers tools.
 func NewSession(ctx context.Context, core *Core, id string) *Session {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "janusmcp", Version: "0.1.0"}, nil)
+	srv.AddReceivingMiddleware(privateCacheScope)
 	s := &Session{ID: id, core: core, server: srv}
 	s.registerControlTools()
 	_ = s.applyActiveTools(ctx) // best-effort: a dead upstream shouldn't kill the session
 	core.Registry.Add(s)
 	return s
+}
+
+// privateCacheScope marks every cacheable list result as private.
+//
+// The SDK defaults cacheScope to "public" (2026-07-28 adds ttlMs/cacheScope
+// hints to list responses), which is a false claim for a broker: what
+// tools/list returns depends on the caller's active account, so no intermediary
+// may share it. ttlMs stays 0 — "immediately stale" — because a switch can
+// change the answer at any moment.
+func privateCacheScope(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		res, err := next(ctx, method, req)
+		if err != nil {
+			return res, err
+		}
+		// The Cacheable fields are set inside the SDK's own handlers, and
+		// CacheableResult exposes getters only, so the concrete types are the
+		// only seam available.
+		switch r := res.(type) {
+		case *mcp.ListToolsResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.ListPromptsResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.ListResourcesResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.ListResourceTemplatesResult:
+			r.CacheScope, r.TTLMs = "private", 0
+		case *mcp.DiscoverResult:
+			// Capabilities depend on which control tools are registered
+			// (janus_login only with a vault, janus_use_profile only with
+			// profiles), so discovery is caller-specific too.
+			r.CacheScope, r.TTLMs = "private", 0
+		}
+		return res, nil
+	}
 }
 
 func emptyObjectSchema() *jsonschema.Schema {
@@ -213,11 +250,23 @@ func (s *Session) handleListAccounts(ctx context.Context, _ *mcp.CallToolRequest
 	}
 	out := map[string]any{
 		"active": active, "bindingMode": s.core.State.BindingMode(), "sessionId": s.ID, "accounts": accts,
+		// Additive, and load-bearing for a caller deciding how to switch: on the
+		// stateless transport only global switches and janus_with_account apply.
+		"transport": s.transportKind(),
 	}
 	if len(s.core.Cfg.Profiles) > 0 {
 		out["profiles"] = s.core.Cfg.Profiles
 	}
 	return textResult(out), nil
+}
+
+// transportKind names the identity model in force, so a caller can tell whether
+// a session-scoped switch is available without having to try one.
+func (s *Session) transportKind() string {
+	if s.stateless {
+		return "stateless"
+	}
+	return "session"
 }
 
 func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -228,7 +277,8 @@ func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mc
 	}
 	if accounts, isProfile := s.core.Cfg.Profiles[active]; isProfile {
 		return textResult(map[string]any{
-			"type": "profile", "active": active, "accounts": accounts, "resolvedFrom": source, "sessionId": s.ID,
+			"type": "profile", "active": active, "accounts": accounts, "resolvedFrom": source,
+			"sessionId": s.ID, "transport": s.transportKind(),
 		}), nil
 	}
 	a, err := s.core.Manager.Account(active)
@@ -236,7 +286,8 @@ func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mc
 		return textResult(map[string]any{"active": active, "error": err.Error(), "sessionId": s.ID}), nil
 	}
 	return textResult(map[string]any{
-		"type": "account", "id": a.ID, "label": a.DisplayLabel(), "service": a.Service, "resolvedFrom": source, "sessionId": s.ID,
+		"type": "account", "id": a.ID, "label": a.DisplayLabel(), "service": a.Service,
+		"resolvedFrom": source, "sessionId": s.ID, "transport": s.transportKind(),
 	}), nil
 }
 
@@ -279,12 +330,29 @@ func (s *Session) handleUseProfile(ctx context.Context, req *mcp.CallToolRequest
 // setActiveSelector switches the active account-or-profile for the session or
 // globally, then re-applies the exposed tool set.
 func (s *Session) setActiveSelector(ctx context.Context, selector, scope string) *mcp.CallToolResult {
+	// Enforced here as well as in the callers, so a future caller cannot bypass
+	// it by forgetting the check.
+	if s.core.State.BindingMode() == config.BindingLocked {
+		return textResult(map[string]any{"ok": false, "error": "bindingMode=locked: switching is disabled"})
+	}
 	if scope == "" {
 		if s.core.State.BindingMode() == config.BindingGlobal {
 			scope = "global"
 		} else {
 			scope = "session"
 		}
+	}
+	// On the stateless transport there is no session to pin a choice to: every
+	// request is independent and the server is shared by all clients, so honouring
+	// a session scope would leak one caller's identity into everyone else's tool
+	// list. Refuse instead of silently widening it to a global switch.
+	if scope == "session" && s.stateless {
+		return textResult(map[string]any{
+			"ok":    false,
+			"error": "session scope is unavailable on the stateless HTTP transport (MCP 2026-07-28 has no sessions)",
+			"hint": "use janus_with_account for a one-shot call on a specific account, " +
+				"or scope=\"global\" to change the default for every client",
+		})
 	}
 	if scope == "global" {
 		if err := s.core.State.SetGlobal(selector); err != nil {
@@ -347,7 +415,7 @@ func (s *Session) handleWithAccount(ctx context.Context, req *mcp.CallToolReques
 	if len(raw) == 0 || string(raw) == "null" {
 		raw = json.RawMessage("{}")
 	}
-	return cs.CallTool(ctx, &mcp.CallToolParams{Name: in.Tool, Arguments: raw})
+	return callUpstream(ctx, cs, in.AccountID, in.Tool, raw, req.Params.Meta, req.Params.InputResponses, req.Params.RequestState)
 }
 
 func (s *Session) handleLogin(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -404,8 +472,56 @@ func (s *Session) proxyHandler() mcp.ToolHandler {
 		if len(raw) == 0 || string(raw) == "null" {
 			raw = json.RawMessage("{}")
 		}
-		return cs.CallTool(ctx, &mcp.CallToolParams{Name: tool, Arguments: raw})
+		return callUpstream(ctx, cs, account, tool, raw, req.Params.Meta, req.Params.InputResponses, req.Params.RequestState)
 	}
+}
+
+// callUpstream forwards one tool call and relays a multi round-trip exchange
+// (SEP-2322) in both directions.
+//
+// The broker is a proxy, so it must not answer the upstream's input requests
+// itself: the upstream client is built with the SDK's automatic MRTR middleware
+// disabled (see UpstreamManager.Session), which surfaces `input_required` here
+// so it can be handed to the real client instead.
+func callUpstream(
+	ctx context.Context,
+	cs *mcp.ClientSession,
+	account, tool string,
+	args json.RawMessage,
+	meta mcp.Meta,
+	inputResponses mcp.InputResponseMap,
+	requestState string,
+) (*mcp.CallToolResult, error) {
+	upstreamState, err := unwrapRequestState(requestState, account, tool)
+	if err != nil {
+		// A stale or misrouted retry is the model's problem to recover from, so
+		// report it as a tool error it can read rather than a protocol error.
+		return &mcp.CallToolResult{
+			IsError: true,
+			Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}},
+		}, nil
+	}
+
+	res, err := cs.CallTool(ctx, &mcp.CallToolParams{
+		Name:           tool,
+		Arguments:      args,
+		Meta:           meta,
+		InputResponses: inputResponses,
+		RequestState:   upstreamState,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// A nil InputRequests means a normal result; a non-nil but empty one means
+	// the upstream is load-shedding. Both must survive, so test for nil rather
+	// than for length.
+	if res.InputRequests == nil {
+		return res, nil
+	}
+	out := *res // copy: carries the unexported result type across untouched
+	out.RequestState = wrapRequestState(account, tool, res.RequestState)
+	return &out, nil
 }
 
 // applyActiveTools swaps the registered upstream tools to match the active account.
@@ -416,12 +532,15 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 	s.mu.Lock()
 	old := s.registeredUpstream
 	s.mu.Unlock()
-	if len(old) > 0 {
-		s.server.RemoveTools(old...)
-	}
 
+	// Build the new set first, then reconcile. Removing everything up front
+	// would empty the tool table for a moment, and on the shared stateless
+	// server that window is visible to every concurrent client: an in-flight
+	// tools/call would come back as "unknown tool". Reconciling also collapses
+	// the change into a single debounced list-changed notification.
 	names := make([]string, 0)
 	routes := make(map[string]route)
+	added := make([]*mcp.Tool, 0)
 	h := s.proxyHandler()
 	var firstErr error
 	for _, acc := range accounts {
@@ -439,10 +558,18 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 			}
 			reg := *t
 			reg.Name = name
-			s.server.AddTool(&reg, h)
+			added = append(added, &reg)
 			routes[name] = route{account: acc, tool: t.Name}
 			names = append(names, name)
 		}
+	}
+
+	// AddTool replaces by name, so re-adding an unchanged tool is harmless.
+	for _, t := range added {
+		s.server.AddTool(t, h)
+	}
+	if gone := missingFrom(old, routes); len(gone) > 0 {
+		s.server.RemoveTools(gone...)
 	}
 
 	s.mu.Lock()
@@ -452,18 +579,25 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 	return firstErr
 }
 
+// missingFrom returns the previously registered names that the new route table
+// no longer covers.
+func missingFrom(old []string, routes map[string]route) []string {
+	gone := make([]string, 0)
+	for _, name := range old {
+		if _, kept := routes[name]; !kept {
+			gone = append(gone, name)
+		}
+	}
+	return gone
+}
+
 // RunStdio serves a single stdio session (Claude Desktop/Code).
 func (c *Core) RunStdio(ctx context.Context) error {
 	s := NewSession(ctx, c, "stdio")
+	// One connection for the life of the process: never prune it, even in the
+	// window before the transport attaches.
+	s.persistent = true
 	return s.server.Run(ctx, &mcp.StdioTransport{})
-}
-
-// HTTPHandler returns a Streamable HTTP handler that builds one broker server per session.
-func (c *Core) HTTPHandler() http.Handler {
-	return mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
-		s := NewSession(r.Context(), c, randomID())
-		return s.server
-	}, nil)
 }
 
 func randomID() string {

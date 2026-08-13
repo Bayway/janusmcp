@@ -185,7 +185,8 @@ CLI agent flags:
 
 Exit codes:
   0 success · 1 generic · 2 usage/input · 3 config/selector · 4 auth
-  5 upstream/daemon · 6 tool error · 124 timeout · 130 interrupted
+  5 upstream/daemon · 6 tool error · 7 tool needs interactive input
+  124 timeout · 130 interrupted
 
 Clients (install/uninstall):
   claude-desktop | claude-code | cursor | vscode | gemini | codex | chatgpt | print

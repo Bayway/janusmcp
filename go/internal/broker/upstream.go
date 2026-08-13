@@ -22,8 +22,17 @@ type UpstreamManager struct {
 	secrets   oauth.Secrets         // optional: persists remote OAuth tokens
 
 	mu        sync.Mutex
-	sessions  map[string]*mcp.ClientSession
+	sessions  map[string]*upstreamConn
 	toolCache map[string][]*mcp.Tool
+}
+
+// upstreamConn is an in-flight or completed connection attempt. Holding the
+// entry (rather than the session) in the map lets concurrent first callers
+// share one attempt instead of each spawning their own upstream process.
+type upstreamConn struct {
+	ready chan struct{} // closed when cs/err are set
+	cs    *mcp.ClientSession
+	err   error
 }
 
 // NewUpstreamManager builds the manager. resolve is applied to each account's env
@@ -39,7 +48,7 @@ func NewUpstreamManager(cfg *config.Config, configDir string, resolve config.Sec
 		configDir: configDir,
 		resolve:   resolve,
 		secrets:   secrets,
-		sessions:  map[string]*mcp.ClientSession{},
+		sessions:  map[string]*upstreamConn{},
 		toolCache: map[string][]*mcp.Tool{},
 	}
 }
@@ -54,32 +63,68 @@ func (m *UpstreamManager) Account(id string) (*config.Account, error) {
 }
 
 // Session returns a connected upstream client session for an account, connecting lazily.
+//
+// Connecting happens outside the manager lock — it spawns a process or performs
+// an OAuth handshake — so the map holds a placeholder for the attempt. Without
+// it, two concurrent first calls for the same account each spawn an upstream and
+// one gets silently orphaned, which also breaks the guarantee that daemon-routed
+// CLI calls reuse a single upstream process.
 func (m *UpstreamManager) Session(ctx context.Context, id string) (*mcp.ClientSession, error) {
 	m.mu.Lock()
-	if cs, ok := m.sessions[id]; ok {
+	if conn, ok := m.sessions[id]; ok {
 		m.mu.Unlock()
-		return cs, nil
+		<-conn.ready
+		return conn.cs, conn.err
 	}
+	conn := &upstreamConn{ready: make(chan struct{})}
+	m.sessions[id] = conn
 	m.mu.Unlock()
+
+	// Publish the outcome exactly once, and drop a failed attempt so the next
+	// caller retries rather than inheriting the error forever.
+	defer func() {
+		close(conn.ready)
+		if conn.err != nil {
+			m.mu.Lock()
+			if m.sessions[id] == conn {
+				delete(m.sessions, id)
+			}
+			m.mu.Unlock()
+		}
+	}()
 
 	a, err := m.Account(id)
 	if err != nil {
+		conn.err = err
 		return nil, err
 	}
 
 	transport, err := m.transportFor(ctx, a)
 	if err != nil {
+		conn.err = err
 		return nil, err
 	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "janusmcp", Version: "0.1.0"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "janusmcp", Version: "0.1.0"}, &mcp.ClientOptions{
+		// The broker is a proxy, not the end user. Left enabled, the SDK's
+		// multi round-trip middleware would try to answer an upstream's input
+		// requests here — and with no elicitation handler behind it, every
+		// elicitation-capable tool would simply fail. Disabling it surfaces
+		// `input_required` to callUpstream, which relays it to the real client.
+		MultiRoundTrip: &mcp.MultiRoundTripOptions{Disabled: true},
+		// With nil capabilities the SDK advertises roots.listChanged, which the
+		// broker does not implement and which SEP-2577 deprecates. An explicit
+		// empty value drops the claim on the 2026-07-28 discovery path; on the
+		// legacy initialize path `"roots":{}` still ships, because
+		// ClientCapabilities.Roots is a non-pointer struct and encoding/json
+		// ignores omitempty for structs.
+		Capabilities: &mcp.ClientCapabilities{},
+	})
 	cs, err := client.Connect(ctx, transport, nil)
 	if err != nil {
-		return nil, fmt.Errorf("connect upstream %s: %w", id, err)
+		conn.err = fmt.Errorf("connect upstream %s: %w", id, err)
+		return nil, conn.err
 	}
-
-	m.mu.Lock()
-	m.sessions[id] = cs
-	m.mu.Unlock()
+	conn.cs = cs
 	return cs, nil
 }
 
@@ -96,21 +141,46 @@ func (m *UpstreamManager) Tools(ctx context.Context, id string) ([]*mcp.Tool, er
 	if err != nil {
 		return nil, err
 	}
-	res, err := cs.ListTools(ctx, nil)
-	if err != nil {
-		return nil, err
+	// Follow the cursor: a single ListTools call returns one page, so an upstream
+	// with more tools than the server's page size would be silently truncated.
+	var tools []*mcp.Tool
+	params := &mcp.ListToolsParams{}
+	for {
+		res, err := cs.ListTools(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		tools = append(tools, res.Tools...)
+		if res.NextCursor == "" {
+			break
+		}
+		params = &mcp.ListToolsParams{Cursor: res.NextCursor}
 	}
+
 	m.mu.Lock()
-	m.toolCache[id] = res.Tools
+	m.toolCache[id] = tools
 	m.mu.Unlock()
-	return res.Tools, nil
+	return tools, nil
 }
 
 func (m *UpstreamManager) CloseAll() {
+	// Snapshot under the lock, then wait outside it: an in-flight connect can be
+	// slow (a process spawn, or an interactive OAuth login), and blocking on it
+	// while holding the mutex would stall every other caller.
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	for _, cs := range m.sessions {
-		_ = cs.Close()
+	conns := make([]*upstreamConn, 0, len(m.sessions))
+	for _, conn := range m.sessions {
+		conns = append(conns, conn)
+	}
+	m.sessions = map[string]*upstreamConn{}
+	m.toolCache = map[string][]*mcp.Tool{}
+	m.mu.Unlock()
+
+	for _, conn := range conns {
+		<-conn.ready
+		if conn.cs != nil {
+			_ = conn.cs.Close()
+		}
 	}
 }
 
