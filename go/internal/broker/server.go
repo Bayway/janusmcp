@@ -32,6 +32,7 @@ type Session struct {
 	ID   string
 	core *Core
 
+	persistent         bool // stdio and the shared stateless server outlive any one connection
 	mu                 sync.Mutex
 	localActive        string // "" → follow the global active account/profile
 	registeredUpstream []string
@@ -539,6 +540,9 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 // RunStdio serves a single stdio session (Claude Desktop/Code).
 func (c *Core) RunStdio(ctx context.Context) error {
 	s := NewSession(ctx, c, "stdio")
+	// One connection for the life of the process: never prune it, even in the
+	// window before the transport attaches.
+	s.persistent = true
 	return s.server.Run(ctx, &mcp.StdioTransport{})
 }
 
