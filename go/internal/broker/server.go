@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"net/http"
 	"sync"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -33,6 +32,7 @@ type Session struct {
 	core *Core
 
 	persistent         bool // stdio and the shared stateless server outlive any one connection
+	stateless          bool // served over the sessionless 2026-07-28 transport
 	mu                 sync.Mutex
 	localActive        string // "" → follow the global active account/profile
 	registeredUpstream []string
@@ -250,11 +250,23 @@ func (s *Session) handleListAccounts(ctx context.Context, _ *mcp.CallToolRequest
 	}
 	out := map[string]any{
 		"active": active, "bindingMode": s.core.State.BindingMode(), "sessionId": s.ID, "accounts": accts,
+		// Additive, and load-bearing for a caller deciding how to switch: on the
+		// stateless transport only global switches and janus_with_account apply.
+		"transport": s.transportKind(),
 	}
 	if len(s.core.Cfg.Profiles) > 0 {
 		out["profiles"] = s.core.Cfg.Profiles
 	}
 	return textResult(out), nil
+}
+
+// transportKind names the identity model in force, so a caller can tell whether
+// a session-scoped switch is available without having to try one.
+func (s *Session) transportKind() string {
+	if s.stateless {
+		return "stateless"
+	}
+	return "session"
 }
 
 func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -265,7 +277,8 @@ func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mc
 	}
 	if accounts, isProfile := s.core.Cfg.Profiles[active]; isProfile {
 		return textResult(map[string]any{
-			"type": "profile", "active": active, "accounts": accounts, "resolvedFrom": source, "sessionId": s.ID,
+			"type": "profile", "active": active, "accounts": accounts, "resolvedFrom": source,
+			"sessionId": s.ID, "transport": s.transportKind(),
 		}), nil
 	}
 	a, err := s.core.Manager.Account(active)
@@ -273,7 +286,8 @@ func (s *Session) handleWhoami(ctx context.Context, _ *mcp.CallToolRequest) (*mc
 		return textResult(map[string]any{"active": active, "error": err.Error(), "sessionId": s.ID}), nil
 	}
 	return textResult(map[string]any{
-		"type": "account", "id": a.ID, "label": a.DisplayLabel(), "service": a.Service, "resolvedFrom": source, "sessionId": s.ID,
+		"type": "account", "id": a.ID, "label": a.DisplayLabel(), "service": a.Service,
+		"resolvedFrom": source, "sessionId": s.ID, "transport": s.transportKind(),
 	}), nil
 }
 
@@ -316,12 +330,29 @@ func (s *Session) handleUseProfile(ctx context.Context, req *mcp.CallToolRequest
 // setActiveSelector switches the active account-or-profile for the session or
 // globally, then re-applies the exposed tool set.
 func (s *Session) setActiveSelector(ctx context.Context, selector, scope string) *mcp.CallToolResult {
+	// Enforced here as well as in the callers, so a future caller cannot bypass
+	// it by forgetting the check.
+	if s.core.State.BindingMode() == config.BindingLocked {
+		return textResult(map[string]any{"ok": false, "error": "bindingMode=locked: switching is disabled"})
+	}
 	if scope == "" {
 		if s.core.State.BindingMode() == config.BindingGlobal {
 			scope = "global"
 		} else {
 			scope = "session"
 		}
+	}
+	// On the stateless transport there is no session to pin a choice to: every
+	// request is independent and the server is shared by all clients, so honouring
+	// a session scope would leak one caller's identity into everyone else's tool
+	// list. Refuse instead of silently widening it to a global switch.
+	if scope == "session" && s.stateless {
+		return textResult(map[string]any{
+			"ok":    false,
+			"error": "session scope is unavailable on the stateless HTTP transport (MCP 2026-07-28 has no sessions)",
+			"hint": "use janus_with_account for a one-shot call on a specific account, " +
+				"or scope=\"global\" to change the default for every client",
+		})
 	}
 	if scope == "global" {
 		if err := s.core.State.SetGlobal(selector); err != nil {
@@ -501,12 +532,15 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 	s.mu.Lock()
 	old := s.registeredUpstream
 	s.mu.Unlock()
-	if len(old) > 0 {
-		s.server.RemoveTools(old...)
-	}
 
+	// Build the new set first, then reconcile. Removing everything up front
+	// would empty the tool table for a moment, and on the shared stateless
+	// server that window is visible to every concurrent client: an in-flight
+	// tools/call would come back as "unknown tool". Reconciling also collapses
+	// the change into a single debounced list-changed notification.
 	names := make([]string, 0)
 	routes := make(map[string]route)
+	added := make([]*mcp.Tool, 0)
 	h := s.proxyHandler()
 	var firstErr error
 	for _, acc := range accounts {
@@ -524,10 +558,18 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 			}
 			reg := *t
 			reg.Name = name
-			s.server.AddTool(&reg, h)
+			added = append(added, &reg)
 			routes[name] = route{account: acc, tool: t.Name}
 			names = append(names, name)
 		}
+	}
+
+	// AddTool replaces by name, so re-adding an unchanged tool is harmless.
+	for _, t := range added {
+		s.server.AddTool(t, h)
+	}
+	if gone := missingFrom(old, routes); len(gone) > 0 {
+		s.server.RemoveTools(gone...)
 	}
 
 	s.mu.Lock()
@@ -537,6 +579,18 @@ func (s *Session) applyActiveTools(ctx context.Context) error {
 	return firstErr
 }
 
+// missingFrom returns the previously registered names that the new route table
+// no longer covers.
+func missingFrom(old []string, routes map[string]route) []string {
+	gone := make([]string, 0)
+	for _, name := range old {
+		if _, kept := routes[name]; !kept {
+			gone = append(gone, name)
+		}
+	}
+	return gone
+}
+
 // RunStdio serves a single stdio session (Claude Desktop/Code).
 func (c *Core) RunStdio(ctx context.Context) error {
 	s := NewSession(ctx, c, "stdio")
@@ -544,14 +598,6 @@ func (c *Core) RunStdio(ctx context.Context) error {
 	// window before the transport attaches.
 	s.persistent = true
 	return s.server.Run(ctx, &mcp.StdioTransport{})
-}
-
-// HTTPHandler returns a Streamable HTTP handler that builds one broker server per session.
-func (c *Core) HTTPHandler() http.Handler {
-	return mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
-		s := NewSession(r.Context(), c, randomID())
-		return s.server
-	}, nil)
 }
 
 func randomID() string {

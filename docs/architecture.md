@@ -45,7 +45,22 @@ boundary for repeated CLI calls, not a replacement protocol.
 An MCP client connects over stdio or Streamable HTTP. JanusMCP creates a downstream session,
 registers the `janus_*` control tools, exposes the selected account/profile tools, and routes
 calls through `UpstreamManager`. Switching a selector refreshes the session tool set and emits
-the MCP tool-list change notification.
+the MCP tool-list change notification. Under MCP 2026-07-28 that notification only reaches a
+client that opened a `subscriptions/listen` stream, which the SDK does automatically for a
+client with a tool-list-changed handler.
+
+Streamable HTTP has two sub-paths, chosen per request by the `Mcp-Protocol-Version` header:
+
+- **2026-07-28 and later** — a stateless handler backed by a single long-lived server. There is
+  no session, so identity is per call via `janus_with_account`, or global.
+- **earlier revisions** — the session-based handler, one server per connection, unchanged. This
+  is where `bindingMode: session` still applies over HTTP.
+
+`JANUS_HTTP_PROTOCOL=legacy` serves only the session-based handler.
+
+Tool calls are relayed rather than absorbed: an upstream's multi round-trip input requests reach
+the client, and the `requestState` between them is the broker's own signed value, bound to the
+account and tool it was minted for.
 
 ### Direct CLI path
 
@@ -56,9 +71,10 @@ is the human-compatible default; `--json` adds the machine contract.
 ### Managed daemon path
 
 The daemon holds a Broker Core and `UpstreamManager` across CLI invocations. Each CLI command
-opens a temporary authenticated MCP HTTP session to the daemon. Explicit selectors have
-session scope, so a command does not mutate the global active selector. In automatic mode, an
-absent, unhealthy, incompatible, or locked daemon falls back to the direct path.
+opens a temporary authenticated MCP HTTP connection to the daemon and issues a single
+`janus_with_account` call carrying the account and the tool together, so the account choice never
+mutates the global active selector and never depends on two requests sharing a session. In
+automatic mode, an absent, unhealthy, incompatible, or locked daemon falls back to the direct path.
 
 ## Selection and routing
 
@@ -70,8 +86,9 @@ Selectors resolve to one account or to all accounts in a profile. Precedence is:
 4. configured default account.
 
 `bindingMode=global` permits persistent global switching, `session` isolates downstream
-sessions, and `locked` rejects switching. Profile tool-name collisions are namespaced so a call
-has one deterministic owner.
+sessions, and `locked` rejects switching. Session-local selection requires a transport that has
+sessions; on the stateless MCP 2026-07-28 path only per-call and global selection apply. Profile
+tool-name collisions are namespaced so a call has one deterministic owner.
 
 ## Persistence
 

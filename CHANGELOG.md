@@ -23,8 +23,24 @@ All notable changes to JanusMCP are documented here. The format follows
 
 ### Added
 
+- Streamable HTTP now serves MCP 2026-07-28. Requests are routed by `Mcp-Protocol-Version`:
+  2026-07-28 and later to a stateless handler, earlier revisions to the existing session-based
+  one. Previously a modern SDK client silently downgraded to 2025-11-25 and a client requiring
+  2026-07-28 got an HTTP 400.
+- `JANUS_HTTP_PROTOCOL=legacy` disables the stateless branch and restores the previous behaviour
+  for every client.
+- `janus_whoami` and `janus_list_accounts` report `transport` (`session` or `stateless`), so a
+  caller can tell which identity model is in force before attempting a switch.
 - Exit code 7 (`input_required`) for a tool that asks for interactive input the CLI cannot
   provide. It is a distinct outcome from a tool error, not a retryable failure.
+
+### Changed
+
+- The daemon CLI issues a single `janus_with_account` call instead of switching the session's
+  account and then calling the tool. The old pair only worked when both requests landed in the
+  same session, which MCP 2026-07-28 does not provide.
+- Tool-set changes are applied incrementally rather than by removing every tool and re-adding it,
+  so a switch no longer empties the tool table for concurrent callers.
 
 ### Security
 
@@ -38,8 +54,14 @@ All notable changes to JanusMCP are documented here. The format follows
 
 ### Compatibility
 
-- stdio and Streamable HTTP protocol behaviour is unchanged; a new test pins the legacy HTTP
-  session contract (initialize at 2025-11-25, `Mcp-Session-Id`, session-scoped switching).
+- The session-based HTTP handler is unchanged and its observable contract is pinned by a raw-HTTP
+  test (initialize at 2025-11-25, `Mcp-Session-Id`, session-scoped switching, isolation between
+  connections) written to pass against the previous code.
+- One behaviour change to note: an SDK-based HTTP client that used to fall back to 2025-11-25 and
+  get session-scoped identity now negotiates 2026-07-28 and gets per-call identity, so
+  `janus_use_account` with `scope: "session"` is refused there. Use `janus_with_account`,
+  `scope: "global"`, stdio, or `JANUS_HTTP_PROTOCOL=legacy`. See ADR-0005.
+- stdio is unaffected; it already negotiated 2026-07-28 before this release.
 - `call --json` success and error envelopes are unchanged. Exit code 7 is new and is not
   reused from any existing class; codes 1-6, 124 and 130 keep their meanings.
 - A `requestState` that does not carry the broker's envelope is forwarded verbatim, so calls

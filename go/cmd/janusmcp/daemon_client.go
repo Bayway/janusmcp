@@ -115,23 +115,55 @@ func (c *daemonCLICore) Tools(ctx context.Context, id string) ([]*mcp.Tool, erro
 	return payload.Tools, nil
 }
 
+// Call runs one tool on a specific account.
+//
+// This used to switch the session's active account and then call the tool: two
+// requests that only work if they land in the same server-side session. MCP
+// 2026-07-28 has no sessions, so the pair is not portable. janus_with_account
+// carries the account and the call together and returns the upstream result
+// verbatim, which keeps runCall's rendering and --json envelope identical.
 func (c *daemonCLICore) Call(ctx context.Context, id, name string, payload json.RawMessage) (*mcp.CallToolResult, error) {
-	switchArgs := json.RawMessage(fmt.Sprintf(`{"account_id":%q,"scope":"session"}`, id))
-	switchResult, err := c.cs.CallTool(ctx, &mcp.CallToolParams{Name: "janus_use_account", Arguments: switchArgs})
+	if len(payload) == 0 || string(payload) == "null" {
+		payload = json.RawMessage("{}")
+	}
+	args, err := json.Marshal(map[string]any{
+		"account_id": id,
+		"tool":       name,
+		"arguments":  payload,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("encode daemon call: %w", err)
+	}
+	// json.RawMessage, not []byte: a plain byte slice marshals to a base64
+	// string and the broker would see no arguments at all.
+	res, err := c.cs.CallTool(ctx, &mcp.CallToolParams{Name: "janus_with_account", Arguments: json.RawMessage(args)})
 	if err != nil {
 		return nil, err
 	}
-	var switched struct {
-		OK    bool   `json:"ok"`
+	if brokerErr := brokerFailure(res); brokerErr != nil {
+		return nil, brokerErr
+	}
+	return res, nil
+}
+
+// brokerFailure recognises janus_with_account's own {"ok":false,"error":…}
+// envelope, which it returns as plain text with isError unset. A real upstream
+// result never has that exact shape.
+func brokerFailure(res *mcp.CallToolResult) error {
+	if res.IsError || len(res.Content) != 1 {
+		return nil
+	}
+	var env struct {
+		OK    *bool  `json:"ok"`
 		Error string `json:"error"`
 	}
-	if err := json.Unmarshal([]byte(firstContentText(switchResult.Content)), &switched); err != nil {
-		return nil, fmt.Errorf("decode daemon account switch: %w", err)
+	if err := json.Unmarshal([]byte(firstContentText(res.Content)), &env); err != nil {
+		return nil
 	}
-	if !switched.OK {
-		return nil, errors.New(switched.Error)
+	if env.OK != nil && !*env.OK && env.Error != "" {
+		return errors.New(env.Error)
 	}
-	return c.cs.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: payload})
+	return nil
 }
 
 func (c *daemonCLICore) Account(id string) (*config.Account, error) {

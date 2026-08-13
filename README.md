@@ -249,8 +249,8 @@ to choose a default policy.
 | | |
 |---|---|
 | **Multi-account, one endpoint** | N identities for the same service, no reconnecting |
-| **Identity scoping** | per-call → per-session (`Mcp-Session-Id`) → global, via `bindingMode: global \| session \| locked` |
-| **Dual transport** | stdio (local-first clients) + Streamable HTTP (remote-first clients), same process |
+| **Identity scoping** | per-call → per-session → global, via `bindingMode: global \| session \| locked`. Session scope needs a real connection: stdio and legacy HTTP have one; MCP 2026-07-28 removed sessions, so there it is per-call (`janus_with_account`) or global |
+| **Dual transport** | stdio (local-first clients) + Streamable HTTP (remote-first clients), same process. HTTP serves MCP 2026-07-28 and every earlier revision, each on the transport it requires |
 | **Secure vault** | OS keychain (macOS/Windows/Linux) + encrypted-file fallback; secrets as `vault:<name>` |
 | **OAuth loopback** | `janusmcp login` (PKCE), tokens stored in the vault, auto-refresh, `oauth:<name>` |
 | **Context-safe** | only the active account's tools are exposed; switching emits `tools/list_changed` |
@@ -347,6 +347,7 @@ Alpha — the core is implemented and tested in Go.
 
 - [x] Active-account model, per-session / global / locked scoping
 - [x] stdio + Streamable HTTP transports
+- [x] MCP 2026-07-28 (stateless core) on both transports, legacy revisions unchanged
 - [x] OS-keychain vault + encrypted-file fallback
 - [x] OAuth loopback (PKCE) with auto-refresh and per-spawn token resolution
 - [x] One-command client install (`janusmcp install …`), Claude Desktop `.mcpb`, registry `server.json`

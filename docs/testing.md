@@ -42,11 +42,19 @@ Use the mock config in `spike/config.json` and a temporary file vault. Verify:
 Broker tests must continue to exercise:
 
 - stdio and Streamable HTTP sessions;
+- both HTTP protocol branches: the raw-HTTP legacy pin (`TestLegacyHTTPSessionContract`) and the
+  stateless path (`http_test.go`), plus the version routing table (`TestIsStatelessVersion`);
 - control tools and tool-list refresh;
-- global/session/locked selection;
+- global/session/locked selection, and the refusal of session scope on the stateless transport;
 - profiles and collision namespacing;
+- multi round-trip relay, including the rejection of a `requestState` minted for another account;
 - remote HTTP/SSE upstreams and OAuth credential resolution;
 - structured content, multiple content items, and MCP tool errors.
+
+The multi round-trip and stateless tests use an in-process Go upstream built on the MCP SDK, so
+they need no Node. The Node mock (`spike/mock-upstream/server.mjs`) predates `inputRequests` and
+cannot express them; do not extend it for that purpose. Tests that use the Node mock still require
+`node` on PATH and `npm install` in `spike/`.
 
 ## Daemon lifecycle checks
 

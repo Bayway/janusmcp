@@ -18,7 +18,13 @@ and optional daemon evolve.
   on the caller's active account.
 - The `janus_*` control tools remain additive broker tools. Adding an optional field to a control
   tool is compatible; removing or renaming a tool or required field is not.
-- Account/profile switching continues to respect `global`, `session`, and `locked` binding modes.
+- Account/profile switching continues to respect `global`, `session`, and `locked` binding modes,
+  wherever a session exists to bind to. MCP 2026-07-28 removed sessions, so on that transport a
+  `session` scope is refused with an actionable error rather than silently promoted to `global`;
+  `janus_with_account` and `global` remain available. stdio and pre-2026-07-28 HTTP are unaffected.
+- Streamable HTTP dispatches on the `Mcp-Protocol-Version` header: 2026-07-28 and later are served
+  by a stateless handler, everything else by the existing session-based one, whose behaviour is
+  pinned by a raw-HTTP regression test. `JANUS_HTTP_PROTOCOL=legacy` disables the stateless branch.
 - The direct CLI and daemon must not change what an external MCP client sees from ordinary
   `janusmcp serve`.
 
