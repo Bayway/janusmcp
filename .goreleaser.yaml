@@ -64,12 +64,21 @@ homebrew_casks:
       name: goreleaserbot
       email: bot@goreleaser.com
     # The binary is unsigned; strip the macOS quarantine bit so it runs.
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/janusmcp"]
-          end
+    # Homebrew 7 deprecated the Ruby `postflight` block (which `hooks.post.install`
+    # renders) in favour of the declarative `postflight_steps` DSL. GoReleaser
+    # can't emit that yet (goreleaser/goreleaser#6870, planned for v2.19), so it
+    # is injected via custom_block. `{{staged_path}}` is a Homebrew
+    # install-step token, escaped because GoReleaser templates the rendered cask.
+    # Once on GoReleaser >= v2.19, switch to `hooks.post.install_steps`.
+    custom_block: |
+      postflight_steps do
+        on_macos do
+          run "/usr/bin/xattr",
+              args:           ["-dr", "com.apple.quarantine", "{{ "{{staged_path}}" }}/janusmcp"],
+              writable_paths: ["janusmcp"],
+              must_succeed:   false
+        end
+      end
 
 # --- Scoop (Windows; pushes a manifest to your bucket repo) ---
 scoops:
