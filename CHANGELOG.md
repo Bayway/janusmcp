@@ -6,6 +6,19 @@ All notable changes to JanusMCP are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-27
+
+### Fixed
+
+- Published the npm wrapper again. The 0.6.1 release reached GitHub, Homebrew, Scoop, the
+  Linux packages and GHCR, but not npm or the MCP Registry: the npm publish token had expired.
+  The release workflow now publishes through npm trusted publishing (GitHub OIDC), so there is
+  no token left to expire, and the package carries a provenance attestation.
+
+### Changed
+
+- Updated `golang.org/x/oauth2` to 0.37.0.
+
 ## [0.6.1] - 2026-09-27
 
 ### Fixed
@@ -131,7 +144,8 @@ All notable changes to JanusMCP are documented here. The format follows
 - Preserved MCP stdio/HTTP behavior, existing control tools, raw call output, `tools --json`, and
   `schema` success formats.
 
-[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/bayway/janusmcp/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/bayway/janusmcp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/bayway/janusmcp/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/bayway/janusmcp/compare/v0.5.0...v0.5.1
