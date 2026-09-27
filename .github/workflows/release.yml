@@ -79,6 +79,12 @@ jobs:
     name: Publish npm wrapper (npx @bayway/janusmcp)
     needs: goreleaser   # the wrapper downloads release assets at install time
     runs-on: ubuntu-latest
+    # npm trusted publishing: the registry trusts this workflow's GitHub OIDC token, so there
+    # is no NPM_TOKEN to store or rotate (granular tokens expire and lose publish in 2027).
+    # Configured on npmjs.com under @bayway/janusmcp → Settings → Trusted Publisher.
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
 
@@ -87,15 +93,18 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      # Trusted publishing needs npm >= 11.5.1; Node 22 bundles npm 10.
+      - name: Upgrade npm
+        run: npm install -g npm@^11.5.1
+
       - name: Set version from tag
         working-directory: npm
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
 
+      # Provenance is attached automatically when publishing via trusted publishing.
       - name: Publish
         working-directory: npm
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   mcp-registry:
     name: Publish to the official MCP Registry

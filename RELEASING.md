@@ -32,12 +32,14 @@ That single push produces, automatically:
 3. **Add repository secrets** (Settings → Secrets and variables → Actions):
    - `HOMEBREW_TAP_GITHUB_TOKEN` — a PAT with `repo` scope that can push to the tap.
    - `SCOOP_BUCKET_GITHUB_TOKEN` — a PAT with `repo` scope that can push to the bucket.
-   - `NPM_TOKEN` — an npm automation token with publish rights.
    - `GITHUB_TOKEN` is provided automatically (used for the release + GHCR push).
 4. **npm package name**: `janusmcp` may be taken. Check `npm view @bayway/janusmcp`. If taken,
    switch to a scope: set `"name": "@bayway/janusmcp"` in `npm/package.json`
    (publish stays `--access public`).
-5. **Enable GHCR**: the workflow logs in with `GITHUB_TOKEN` (needs `packages: write`,
+5. **npm trusted publishing**: on npmjs.com, add `Bayway/janusmcp` + `release.yml` as the trusted
+   publisher of `@bayway/janusmcp` with **Allow `npm publish`** ticked (no `NPM_TOKEN` secret;
+   see [docs/publishing-keys.md](docs/publishing-keys.md#1-npm--trusted-publishing--claim-the-name)).
+6. **Enable GHCR**: the workflow logs in with `GITHUB_TOKEN` (needs `packages: write`,
    already granted in the workflow permissions). The first image makes the package public
    from the repo's Packages settings.
 
