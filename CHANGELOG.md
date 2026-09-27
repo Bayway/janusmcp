@@ -6,6 +6,24 @@ All notable changes to JanusMCP are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-27
+
+### Fixed
+
+- The Homebrew cask now uses `postflight_steps` instead of the Ruby `postflight` block, which
+  Homebrew 7 deprecated. Every `brew` command on a machine with the tap printed a deprecation
+  warning pointing at `Casks/janusmcp.rb`.
+
+### Changed
+
+- Updated `github.com/modelcontextprotocol/go-sdk` to 1.8.0. A stateful streamable HTTP request
+  the server rejects now gets a JSON-RPC `-32022` error instead of a plain-text 400, and
+  cancellations are sent to upstreams asynchronously.
+- Updated `golang.org/x/sys` to 0.48.0. Building from source now requires Go 1.26; the Glama
+  Docker image builds with `golang:1.26-alpine`.
+- Updated `fast-uri`, `qs` and `hono` in the `spike/` mock upstream used by the test suite,
+  fixing the published advisories. None of them ship in the released binary or npm package.
+
 ## [0.6.0] - 2026-08-13
 
 ### Fixed
@@ -113,7 +131,8 @@ All notable changes to JanusMCP are documented here. The format follows
 - Preserved MCP stdio/HTTP behavior, existing control tools, raw call output, `tools --json`, and
   `schema` success formats.
 
-[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/bayway/janusmcp/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/bayway/janusmcp/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/bayway/janusmcp/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/bayway/janusmcp/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/bayway/janusmcp/compare/v0.4.0...v0.5.0
