@@ -123,6 +123,23 @@ jobs:
           jq --arg v "$VERSION" '.version = $v | (.packages[]?.version) = $v' server.json > server.tmp
           mv server.tmp server.json
 
+      # npm accepts a publish before it serves it ("may take a few minutes to become
+      # available"), and the registry rejects a version npm doesn't serve yet. Wait for it.
+      - name: Wait for the npm version to be available
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          URL="https://registry.npmjs.org/@bayway%2fjanusmcp/$VERSION"
+          for attempt in $(seq 1 40); do
+            if curl -fsS -o /dev/null "$URL"; then
+              echo "@bayway/janusmcp@$VERSION is available on npm"
+              exit 0
+            fi
+            echo "attempt $attempt: @bayway/janusmcp@$VERSION not on npm yet, retrying in 15s"
+            sleep 15
+          done
+          echo "::error::@bayway/janusmcp@$VERSION did not appear on npm within 10 minutes"
+          exit 1
+
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
