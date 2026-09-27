@@ -2,11 +2,11 @@
 #
 # One-shot setup for JanusMCP publishing:
 #   1. creates the Homebrew tap + Scoop bucket repos
-#   2. stores the 3 release secrets on the main repo
+#   2. stores the 2 release secrets on the main repo
+#   (npm needs no secret: it publishes via trusted publishing, see docs/publishing-keys.md)
 #
 # Requirements: GitHub CLI (`gh`) authenticated (`gh auth login`).
 # You will need:
-#   - an npm token (Automation/Granular with publish rights)   → https://www.npmjs.com (Access Tokens)
 #   - a GitHub PAT (fine-grained, Contents: read/write on the tap+bucket repos)
 #
 # Usage:  bash scripts/setup-publishing.sh
@@ -37,10 +37,6 @@ create_repo "$BUCKET" "Scoop bucket for JanusMCP"
 echo
 echo "== 2. Release secrets on $REPO =="
 echo "(input is hidden; nothing is written to disk or shell history)"
-
-read -rsp "npm token (NPM_TOKEN): " NPM_TOK; echo
-printf '%s' "$NPM_TOK" | gh secret set NPM_TOKEN --repo "$REPO"
-echo "✓ NPM_TOKEN set"
 
 read -rsp "GitHub PAT for tap+bucket (reused for both secrets): " PAT; echo
 printf '%s' "$PAT" | gh secret set HOMEBREW_TAP_GITHUB_TOKEN --repo "$REPO"

@@ -3,14 +3,14 @@
 What each channel needs, where to get the token, and how the name gets reserved.
 Repo handle: **`bayway/janusmcp`** · npm package: **`@bayway/janusmcp`** (scoped) · binary/command: **`janusmcp`**.
 
-> **Fast path:** after you have an npm token and a GitHub PAT, run
-> `bash scripts/setup-publishing.sh` — it creates the tap + bucket repos and sets the three
-> secrets for you. The sections below explain how to get those two tokens.
+> **Fast path:** after you have a GitHub PAT, run `bash scripts/setup-publishing.sh` — it
+> creates the tap + bucket repos and sets the two secrets for you. npm needs no secret: it
+> publishes through trusted publishing (section 1).
 
 | Channel | Secret needed | Name reserved by |
 |---|---|---|
 | GitHub Releases | `GITHUB_TOKEN` (automatic) | the repo itself |
-| npm | `NPM_TOKEN` | first `npm publish` of `@bayway/janusmcp` |
+| npm | none (trusted publishing, GitHub OIDC) | first `npm publish` of `@bayway/janusmcp` |
 | Homebrew (tap) | `HOMEBREW_TAP_GITHUB_TOKEN` (PAT) | creating repo `bayway/homebrew-janusmcp` |
 | Scoop (bucket) | `SCOOP_BUCKET_GITHUB_TOKEN` (PAT) | creating repo `bayway/scoop-janusmcp` |
 | Docker (GHCR) | `GITHUB_TOKEN` (automatic) | `ghcr.io/bayway/janusmcp` on first push |
@@ -18,13 +18,19 @@ Repo handle: **`bayway/janusmcp`** · npm package: **`@bayway/janusmcp`** (scope
 
 ---
 
-## 1. npm — token + claim the name
+## 1. npm — trusted publishing + claim the name
+
+The release workflow publishes with **npm trusted publishing**: npm trusts the GitHub OIDC token
+of `release.yml`, so there is no npm token to store or rotate. (Granular access tokens expire
+after ~90 days, and bypass-2FA tokens lose direct publish in January 2027.)
 
 1. Create/sign in at <https://www.npmjs.com>, enable 2FA.
-2. Avatar → **Access Tokens** → **Generate New Token** → choose **Granular Access Token**
-   with **Read and write** for Packages (or a classic **Automation** token — it skips the
-   2FA OTP in CI, which is what we want for the release workflow).
-3. Copy the token → it goes into the GitHub secret `NPM_TOKEN` (step 6).
+2. Package `@bayway/janusmcp` → **Settings** → **Trusted Publisher** → **GitHub Actions**:
+   - Organization or user: `Bayway` · Repository: `janusmcp` · Workflow filename: `release.yml`
+   - Environment name: leave empty (the `npm` job uses no environment)
+   - Allowed actions: tick **Allow `npm publish`**, otherwise every release only stages the
+     version and waits for a manual 2FA approval.
+3. `package.json`'s `repository.url` must point at this repo — it does.
 4. The unscoped name `janusmcp` is blocked by npm (too similar to an existing package), so we
    publish under your scope: **`@bayway/janusmcp`**. It becomes yours on the **first successful
    publish** and the release pipeline publishes it automatically on a tag (step 7) with
@@ -77,7 +83,6 @@ Requires the npm package published first (the registry checks that npm `@bayway/
 UI: repo → Settings → Secrets and variables → Actions → New repository secret. Or via `gh`:
 
 ```bash
-gh secret set NPM_TOKEN                       # paste the npm token
 gh secret set HOMEBREW_TAP_GITHUB_TOKEN       # paste the GitHub PAT
 gh secret set SCOOP_BUCKET_GITHUB_TOKEN       # paste the same PAT (or a second one)
 ```

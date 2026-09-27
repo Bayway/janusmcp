@@ -54,7 +54,8 @@ Settings → Code security:
 
 Settings → Secrets and variables → Actions:
 
-- `NPM_TOKEN`, `HOMEBREW_TAP_GITHUB_TOKEN`, `SCOOP_BUCKET_GITHUB_TOKEN`
+- `HOMEBREW_TAP_GITHUB_TOKEN`, `SCOOP_BUCKET_GITHUB_TOKEN` (npm publishes via trusted
+  publishing and needs no secret)
 - (optional but recommended) put them in an **Environment** named `release` and add
   *Required reviewers* = you, then reference `environment: release` in the release jobs, so a
   human approves every publish.

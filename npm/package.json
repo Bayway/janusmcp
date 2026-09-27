@@ -24,7 +24,7 @@
   "bugs": "https://github.com/bayway/janusmcp/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bayway/janusmcp.git",
+    "url": "git+https://github.com/Bayway/janusmcp.git",
     "directory": "npm"
   },
   "license": "MIT",
